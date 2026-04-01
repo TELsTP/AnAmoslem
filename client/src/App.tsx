@@ -3,6 +3,7 @@ import Home from "./pages/Home";
 import CompanionPage from "./pages/CompanionPage";
 import QuranPage from "./pages/QuranPage";
 import ParadisePage from "./pages/ParadisePage";
+import SunnahPage from "./pages/SunnahPage";
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
       <Route path="/companion" component={CompanionPage} />
       <Route path="/quran" component={QuranPage} />
       <Route path="/paradise" component={ParadisePage} />
+      <Route path="/sunnah" component={SunnahPage} />
       <Route>
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">

@@ -24,6 +24,22 @@ export default function CompanionPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (q) {
+      const decoded = decodeURIComponent(q);
+      setInput(decoded);
+      setTimeout(() => {
+        const btn = document.getElementById("send-btn");
+        if (btn) btn.click();
+      }, 300);
+    }
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -170,6 +186,7 @@ export default function CompanionPage() {
               disabled={isLoading}
             />
             <Button
+              id="send-btn"
               onClick={handleSendMessage}
               disabled={!input.trim() || isLoading}
               size="icon"

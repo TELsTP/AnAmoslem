@@ -54,10 +54,10 @@ export default function Home() {
           <GatewayCard
             title="سنة رسولي"
             subtitle="Prophetic Tradition"
-            description="قدوتي وأخلاقي ونفسيتي وإيماني"
+            description="أحاديث نبوية مختارة مع التفسير والتطبيق"
             icon={<Heart className="w-8 h-8" />}
             color="from-rose-500 to-rose-600"
-            onClick={() => {}}
+            onClick={() => navigate("/sunnah")}
           />
           <GatewayCard
             title="دنيتي"
