@@ -26,13 +26,21 @@ Both servers run concurrently with `npm run dev`:
 ## Pages
 - `/` — Home page with gateway cards
 - `/companion` — AI Companion chat (real AI, streaming responses)
-- `/quran` — Quranic learning tracker
+- `/quran` — Full Quran browser (all 114 surahs, real text, reading tracker)
 - `/paradise` — Spiritual performance dashboard
+
+## Quran Data
+- Source: Google Doc (full Quran text) parsed by `scripts/parse-quran.mjs`
+- Output: `client/public/data/quran.json` (1.7MB, all 114 surahs with verses)
+- Features: surah list sidebar, search, reading progress tracker (localStorage), Arabic numeral verse numbers, prev/next navigation
 
 ## Key Files
 - `server/index.ts` — Express API with `/api/chat` endpoint (streaming SSE)
 - `client/src/pages/CompanionPage.tsx` — AI chat UI with streaming support
+- `client/src/pages/QuranPage.tsx` — Full Quran browser with real data
 - `client/src/pages/Home.tsx` — Main landing page
+- `client/public/data/quran.json` — Full Quran data (114 surahs)
+- `scripts/parse-quran.mjs` — Parser script to fetch and convert Quran text
 - `vite.config.ts` — Vite config with API proxy
 - `tailwind.config.js` — Tailwind config with shadcn color tokens
 
