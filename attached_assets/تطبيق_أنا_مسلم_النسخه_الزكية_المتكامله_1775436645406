@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق أنا مسلم - المكتبة الذكية المتكاملة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;500;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f0fdf4;
+            scroll-behavior: smooth;
+        }
+        .primary-color { background-color: #065f46; }
+        .secondary-color { color: #065f46; }
+        .ai-gradient { background: linear-gradient(135deg, #065f46 0%, #0d9488 100%); }
+        
+        /* Loading Animation */
+        .loading-ring {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-gray-800 pb-20">
+
+    <!-- Top Navigation -->
+    <header class="primary-color text-white py-5 px-6 shadow-xl sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/20 p-2 rounded-lg text-2xl">🕌</div>
+                <h1 class="text-xl font-black tracking-tight">أنا مسلم <span class="text-emerald-300">AI</span></h1>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="getHistoryToday()" class="text-xs bg-emerald-700/50 hover:bg-emerald-700 px-3 py-2 rounded-full transition border border-emerald-500/30">
+                    ✨ حدث في مثل هذا اليوم
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto p-4">
+        
+        <!-- Smart AI Assistant Card -->
+        <section class="mt-4 mb-8 ai-gradient p-8 rounded-[2rem] shadow-2xl text-white relative overflow-hidden">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+            
+            <div class="relative z-10">
+                <h2 class="text-2xl font-bold mb-2 flex items-center gap-3">
+                    مساعدك الذكي في علوم السيرة ✨
+                </h2>
+                <p class="text-emerald-100/80 text-sm mb-6 max-w-xl">
+                    يمكنك الاستفسار عن أي واقعة تاريخية، أو طلب تحليل لموقف معين من السيرة النبوية باستخدام أقوى نماذج الذكاء الاصطناعي.
+                </p>
+                
+                <div class="flex flex-col md:flex-row gap-3">
+                    <div class="flex-1 relative">
+                        <input type="text" id="aiQuery" placeholder="مثلاً: صف لي رحلة الهجرة النبوية بالتفصيل..." 
+                            class="w-full p-4 pr-6 rounded-2xl text-gray-800 outline-none focus:ring-4 focus:ring-emerald-400/50 shadow-inner">
+                    </div>
+                    <button id="askBtn" onclick="askGemini()" class="bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-black px-8 py-4 rounded-2xl transition-all transform active:scale-95 shadow-lg flex items-center justify-center gap-2">
+                        <span>اسأل الآن</span>
+                        <span id="askIcon">✨</span>
+                    </button>
+                </div>
+
+                <div id="aiResponseContainer" class="mt-6 hidden animate-fade-in">
+                    <div class="bg-black/20 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-emerald-50 text-sm leading-relaxed relative">
+                        <div id="aiResponseText"></div>
+                        <div class="mt-4 flex gap-2">
+                            <button onclick="listenToText()" id="voiceBtn" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs transition">
+                                🔊 استمع للإجابة ✨
+                            </button>
+                            <button onclick="copyResponse()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs transition">
+                                📋 نسخ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Library Section -->
+        <div class="flex items-center justify-between mb-6 px-2">
+            <h3 class="text-lg font-bold secondary-color">مكتبة المراجع الموثقة</h3>
+            <div class="flex gap-2">
+                <button onclick="filterCategory('all')" class="cat-btn bg-emerald-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition">الكل</button>
+                <button onclick="filterCategory('سيرة')" class="cat-btn bg-white text-gray-500 px-4 py-1.5 rounded-xl text-xs font-bold border border-gray-100 transition">سيرة</button>
+                <button onclick="filterCategory('حديث')" class="cat-btn bg-white text-gray-500 px-4 py-1.5 rounded-xl text-xs font-bold border border-gray-100 transition">حديث</button>
+            </div>
+        </div>
+
+        <div id="bookGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- Books injected dynamically -->
+        </div>
+
+    </main>
+
+    <!-- UI Overlays -->
+    <div id="toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-2xl text-sm shadow-2xl opacity-0 transition-opacity pointer-events-none z-[100]"></div>
+
+    <script>
+        const apiKey = ""; // يتم التعامل معه برمجياً
+        const books = [
+            { id: 1, title: "الرحيق المختوم", author: "المباركفوري", cat: "سيرة", desc: "البحث الفائز بالمركز الأول في السيرة." },
+            { id: 2, title: "صحيح البخاري", author: "الإمام البخاري", cat: "حديث", desc: "أصح كتاب بعد كتاب الله عز وجل." },
+            { id: 3, title: "زاد المعاد", author: "ابن القيم", cat: "سيرة", desc: "فقه السيرة والهدى النبوي." },
+            { id: 4, title: "البداية والنهاية", author: "ابن كثير", cat: "تاريخ", desc: "تاريخ العالم من الخلق إلى القيامة." },
+            { id: 5, title: "فتح الباري", author: "ابن حجر", cat: "حديث", desc: "شرح الجامع الصحيح للبخاري." },
+            { id: 6, title: "سيرة ابن هشام", author: "ابن هشام", cat: "سيرة", desc: "المرجع الكلاسيكي الأول للسيرة." }
+        ];
+
+        // --- Core Gemini Integration ---
+        async function callGemini(prompt, systemInstruction = "") {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+
+            let delay = 1000;
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch (error) {
+                    if (i === 4) throw error;
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        // --- TTS Integration ---
+        async function listenToText() {
+            const text = document.getElementById('aiResponseText').innerText;
+            const btn = document.getElementById('voiceBtn');
+            if (!text) return;
+
+            btn.innerHTML = `<span>جاري التحميل...</span>`;
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+                const payload = {
+                    model: "gemini-2.5-flash-preview-tts",
+                    contents: [{ parts: [{ text: "تحدث بصوت وقور وهادئ: " + text }] }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                    }
+                };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                const pcmData = data.candidates[0].content.parts[0].inlineData.data;
+                playAudioFromPCM(pcmData);
+                btn.innerHTML = `🔊 استمع مرة أخرى ✨`;
+            } catch (err) {
+                showToast("عذراً، فشل تشغيل الصوت");
+                btn.innerHTML = `🔊 استمع للإجابة ✨`;
+            }
+        }
+
+        function playAudioFromPCM(base64Data) {
+            const binaryString = atob(base64Data);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+            
+            // PCM to WAV conversion (Simplified)
+            const wavHeader = createWavHeader(len, 24000); // Assuming 24kHz
+            const wavBlob = new Blob([wavHeader, bytes], { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(wavBlob);
+            const audio = new Audio(audioUrl);
+            audio.play();
+        }
+
+        function createWavHeader(dataLength, sampleRate) {
+            const buffer = new ArrayBuffer(44);
+            const view = new DataView(buffer);
+            view.setUint32(0, 0x52494646, false); // "RIFF"
+            view.setUint32(4, 36 + dataLength, true);
+            view.setUint32(8, 0x57415645, false); // "WAVE"
+            view.setUint32(12, 0x666d7420, false); // "fmt "
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM
+            view.setUint16(22, 1, true); // Mono
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            view.setUint32(36, 0x64617461, false); // "data"
+            view.setUint32(40, dataLength, true);
+            return buffer;
+        }
+
+        // --- UI Actions ---
+        async function askGemini() {
+            const query = document.getElementById('aiQuery').value;
+            const btn = document.getElementById('askBtn');
+            const responseContainer = document.getElementById('aiResponseContainer');
+            const responseText = document.getElementById('aiResponseText');
+
+            if (!query) return;
+
+            btn.disabled = true;
+            btn.innerHTML = `<span class="loading-ring"></span>`;
+            responseContainer.classList.remove('hidden');
+            responseText.innerHTML = "جاري استشارة المصادر والمراجع...";
+
+            try {
+                const systemPrompt = "أنت عالم متخصص في التاريخ الإسلامي والسيرة النبوية. إجاباتك يجب أن تكون دقيقة، مبنية على مراجع مثل صحيح البخاري والرحيق المختوم. استخدم لغة عربية فصيحة وجميلة.";
+                const answer = await callGemini(query, systemPrompt);
+                responseText.innerText = answer;
+            } catch (err) {
+                responseText.innerText = "حدث خطأ أثناء محاولة الاتصال بالذكاء الاصطناعي.";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>اسأل الآن</span> <span>✨</span>`;
+            }
+        }
+
+        async function getHistoryToday() {
+            showToast("جاري البحث في سجلات التاريخ... ✨");
+            const today = new Date().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' });
+            const prompt = `ما هي أهم الأحداث الإسلامية التي وقعت في يوم ${today} عبر التاريخ؟ اذكر حدثين باختصار مع المرجع.`;
+            
+            try {
+                const result = await callGemini(prompt, "أنت مؤرخ إسلامي.");
+                document.getElementById('aiResponseContainer').classList.remove('hidden');
+                document.getElementById('aiResponseText').innerText = result;
+                document.getElementById('aiSection').scrollIntoView();
+            } catch (e) {
+                showToast("عذراً، تعذر جلب أحداث اليوم.");
+            }
+        }
+
+        async function smartSummarize(bookName) {
+            showToast(`جاري تلخيص ${bookName} ذكياً... ✨`);
+            const prompt = `لخص لي أهمية كتاب "${bookName}" في التاريخ الإسلامي، ولماذا يجب على المسلم قراءته؟ اجعل الملخص في 3 نقاط مشوقة.`;
+            
+            try {
+                const result = await callGemini(prompt, "أنت أمين مكتبة إسلامية خبير.");
+                document.getElementById('aiResponseContainer').classList.remove('hidden');
+                document.getElementById('aiResponseText').innerText = result;
+                document.getElementById('aiQuery').value = `ملخص: ${bookName}`;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (e) {
+                showToast("فشل التلخيص الذكي.");
+            }
+        }
+
+        function renderBooks(data) {
+            const grid = document.getElementById('bookGrid');
+            grid.innerHTML = data.map(book => `
+                <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-emerald-50 hover:shadow-xl hover:-translate-y-1 transition-all group">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="bg-emerald-50 text-emerald-700 text-[10px] px-3 py-1 rounded-full font-bold">${book.cat}</span>
+                        <div class="text-emerald-300 opacity-0 group-hover:opacity-100 transition">📖</div>
+                    </div>
+                    <h3 class="font-black text-gray-800 text-lg mb-1">${book.title}</h3>
+                    <p class="text-xs text-emerald-600 mb-3 font-medium">${book.author}</p>
+                    <p class="text-xs text-gray-500 mb-5 leading-relaxed">${book.desc}</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="smartSummarize('${book.title}')" class="py-2.5 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-bold hover:bg-emerald-100 transition flex items-center justify-center gap-1">
+                            <span>ملخص ذكي</span>
+                            <span>✨</span>
+                        </button>
+                        <button onclick="window.open('https://shamela.ws/search?q=${book.title}')" class="py-2.5 border border-gray-100 text-gray-400 rounded-xl text-[10px] font-bold hover:bg-gray-50 transition">تحميل</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterCategory(cat) {
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn bg-white text-gray-500 px-4 py-1.5 rounded-xl text-xs font-bold border border-gray-100 transition";
+            });
+            event.target.className = "cat-btn bg-emerald-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition";
+            renderBooks(cat === 'all' ? books : books.filter(b => b.cat === cat));
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = "1";
+            setTimeout(() => toast.style.opacity = "0", 3000);
+        }
+
+        function copyResponse() {
+            const text = document.getElementById('aiResponseText').innerText;
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showToast("تم النسخ إلى الحافظة!");
+        }
+
+        window.onload = () => renderBooks(books);
+    </script>
+</body>
+</html>

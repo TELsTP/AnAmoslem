@@ -1,0 +1,131 @@
+import os
+import json
+import time
+from mistralai.client import MistralClient
+from mistralai.models.chat_completion import ChatMessage
+
+# ==========================================
+# إعدادات الوصول - ضع مفتاحك هنا
+# ==========================================
+# يمكنك وضع المفتاح بين علامتي الاقتباس بالأسفل
+MISTRAL_API_KEY = "ضع_مفتاحك_الخاص_هنا" 
+MODEL_NAME = "mistral-large-latest"
+QURAN_FILE_PATH = "quran.json"
+
+class QuranDataProvider:
+    """فئة مسؤولة عن جلب النصوص القرآنية من ملف JSON"""
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.data = self._load_data()
+
+    def _load_data(self):
+        try:
+            if os.path.exists(self.file_path):
+                with open(self.file_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            return None
+        except Exception as e:
+            print(f"خطأ في تحميل ملف القرآن: {e}")
+            return None
+
+    def get_verse(self, surah_number, verse_number):
+        """جلب نص آية محددة بناءً على رقم السورة والآية"""
+        if not self.data:
+            return None
+        
+        for surah in self.data.get('surahs', []):
+            if surah['number'] == surah_number:
+                for verse in surah.get('verses', []):
+                    if verse['number'] == verse_number:
+                        return verse['text']
+        return None
+
+class QuranMistralEvaluator:
+    def __init__(self, api_key):
+        # التأكد من وجود مفتاح قبل التشغيل
+        if not api_key or api_key == "ضع_مفتاحك_الخاص_هنا":
+            raise ValueError("خطأ: لم يتم ضبط مفتاح MISTRAL_API_KEY بشكل صحيح!")
+        self.client = MistralClient(api_key=api_key)
+
+    def evaluate(self, original_text, user_text):
+        """تقييم التلاوة بناءً على مطابقة التشكيل والنطق"""
+        if not original_text or not user_text:
+            return {"error": "النصوص المدخلة غير مكتملة"}
+
+        system_instruction = (
+            "أنت محرك تقييم تلاوة قرآنية متخصص. مهمتك الأساسية هي اكتشاف 'اللحن الجلي' "
+            "(أخطاء التشكيل والحروف) و 'اللحن الخفي' إن وجد في النص المكتوب.\n\n"
+            "المعايير:\n"
+            "1. قارن التشكيل (فتحة، ضمة، كسرة، سكون، شدة) بين النصين.\n"
+            "2. أي اختلاف في حركة حرف واحد يعتبر خطأ يجب رصده.\n"
+            "3. إذا سقطت كلمة أو تبدلت، صنفها كخطأ نطق/حفظ.\n\n"
+            "يجب أن يكون الرد بصيغة JSON حصراً كما يلي:\n"
+            "{\n"
+            "  \"status\": \"perfect\" | \"needs_improvement\",\n"
+            "  \"accuracy_score\": number,\n"
+            "  \"detailed_errors\": [\n"
+            "    {\"word_index\": int, \"expected\": \"string\", \"provided\": \"string\", \"type\": \"shakl\"|\"word\"}\n"
+            "  ],\n"
+            "  \"teacher_note\": \"توجيه صوتي بالعربية للمستخدم\"\n"
+            "}"
+        )
+
+        user_message = f"النص الأصلي (المرجع): {original_text}\nنص المستخدم (التلاوة): {user_text}"
+
+        messages = [
+            ChatMessage(role="system", content=system_instruction),
+            ChatMessage(role="user", content=user_message)
+        ]
+
+        for attempt in range(5):
+            try:
+                response = self.client.chat(
+                    model=MODEL_NAME,
+                    messages=messages,
+                    response_format={"type": "json_object"}
+                )
+                return json.loads(response.choices[0].message.content)
+            except Exception as e:
+                wait_time = 2 ** attempt
+                if attempt == 4:
+                    return {"error": f"فشل الاتصال: {str(e)}"}
+                time.sleep(wait_time)
+
+# ==========================================
+# منطقة التشغيل والتكامل
+# ==========================================
+if __name__ == "__main__":
+    try:
+        # 1. إعداد مزود البيانات والمقيم
+        data_provider = QuranDataProvider(QURAN_FILE_PATH)
+        evaluator = QuranMistralEvaluator(api_key=MISTRAL_API_KEY)
+
+        # 2. جلب آية من الملف (مثال: سورة الفاتحة، الآية 2)
+        surah_no = 1
+        verse_no = 2
+        reference_verse = data_provider.get_verse(surah_no, verse_no)
+
+        if reference_verse:
+            # 3. محاكاة تلاوة المستخدم (مع خطأ في كلمة 'للهَ')
+            user_recitation = "الْحَمْدُ لِلَّهَ رَبِّ الْعَالَمِينَ" 
+            
+            print(f"تم جلب الآية من المرجع: {reference_verse}")
+            print(f"جاري تقييم تلاوة المستخدم: {user_recitation}...")
+            
+            result = evaluator.evaluate(reference_verse, user_recitation)
+            
+            # 4. عرض النتائج
+            print("\n--- نتيجة التقييم الذكي ---")
+            if "error" in result:
+                print(f"خطأ تقني: {result['error']}")
+            else:
+                print(f"الحالة: {result.get('status')}")
+                print(f"دقة التشكيل: {result.get('accuracy_score')}%")
+                print(f"نصيحة المعلم: {result.get('teacher_note')}")
+                
+                for err in result.get('detailed_errors', []):
+                    print(f"-> خطأ في كلمة '{err['provided']}': المتوقع كان '{err['expected']}'")
+        else:
+            print(f"لم يتم العثور على الآية المطلوبة في {QURAN_FILE_PATH}")
+    except Exception as ex:
+        print(f"حدث خطأ أثناء التشغيل: {ex}")
