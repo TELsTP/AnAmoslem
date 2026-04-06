@@ -142,6 +142,69 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+app.post("/api/evaluate-recitation", async (req, res) => {
+  try {
+    const { originalText, userText } = req.body;
+    if (!originalText || !userText) {
+      return res.status(400).json({ error: "النصوص مطلوبة" });
+    }
+
+    const mistralKey = process.env.MISTRAL_API_KEY;
+    if (!mistralKey) {
+      return res.status(500).json({ error: "مفتاح Mistral غير مضبوط" });
+    }
+
+    const systemInstruction = `أنت محرك تقييم تلاوة قرآنية متخصص. مهمتك اكتشاف "اللحن الجلي" (أخطاء التشكيل والحروف) و"اللحن الخفي" في النص المكتوب.
+
+المعايير:
+1. قارن التشكيل (فتحة، ضمة، كسرة، سكون، شدة) بين النصين.
+2. أي اختلاف في حركة حرف واحد يعتبر خطأ يجب رصده.
+3. إذا سقطت كلمة أو تبدلت، صنفها كخطأ نطق/حفظ.
+
+يجب أن يكون الرد بصيغة JSON حصراً كما يلي:
+{
+  "status": "perfect" | "needs_improvement",
+  "accuracy_score": number,
+  "detailed_errors": [
+    {"word_index": int, "expected": "string", "provided": "string", "type": "shakl" | "word"}
+  ],
+  "teacher_note": "توجيه صوتي بالعربية للمستخدم"
+}`;
+
+    const userMessage = `النص الأصلي (المرجع): ${originalText}\nنص المستخدم (التلاوة): ${userText}`;
+
+    const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${mistralKey}`,
+      },
+      body: JSON.stringify({
+        model: "mistral-large-latest",
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: userMessage },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("Mistral error:", err);
+      return res.status(500).json({ error: "فشل الاتصال بمحرك التقييم" });
+    }
+
+    const data = await response.json() as any;
+    const result = JSON.parse(data.choices[0].message.content);
+    res.json(result);
+  } catch (error) {
+    console.error("Evaluation error:", error);
+    res.status(500).json({ error: "خطأ في التقييم" });
+  }
+});
+
 app.get("/api/hadith/daily", (_req, res) => {
   res.json({ hadith: getDailyHadith() });
 });

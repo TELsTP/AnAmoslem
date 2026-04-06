@@ -4,6 +4,8 @@ import CompanionPage from "./pages/CompanionPage";
 import QuranPage from "./pages/QuranPage";
 import ParadisePage from "./pages/ParadisePage";
 import SunnahPage from "./pages/SunnahPage";
+import WirdPage from "./pages/WirdPage";
+import AdhkarPage from "./pages/AdhkarPage";
 import HayatPersona from "./components/HayatPersona";
 
 export default function App() {
@@ -15,6 +17,8 @@ export default function App() {
         <Route path="/quran" component={QuranPage} />
         <Route path="/paradise" component={ParadisePage} />
         <Route path="/sunnah" component={SunnahPage} />
+        <Route path="/wird" component={WirdPage} />
+        <Route path="/adhkar" component={AdhkarPage} />
         <Route>
           <div className="min-h-screen flex items-center justify-center">
             <div className="text-center">

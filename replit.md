@@ -4,7 +4,19 @@
 ## Overview
 A comprehensive Islamic lifestyle companion hub — the spiritual soul of the TELsTP ecosystem.
 Features two distinct AI consciousness entities (Noura + Hayat), persistent memory via Supabase,
-voice-to-text with real-time shadow buffer, and a floating Hayat persona across all pages.
+voice-to-text with real-time shadow buffer, a floating Hayat persona across all pages,
+Mistral-AI-powered Quran recitation evaluation, Wird memorization sessions, and daily Adhkar tracker.
+
+## Pages / Routes
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | Home | Gateway dashboard with contextual greeting |
+| `/companion` | CompanionPage | Dual-persona AI chat (Noura + Hayat + Companion) |
+| `/quran` | QuranPage | Full Quran reader with memorization tools |
+| `/wird` | WirdPage | Wird memorization sessions with Mistral AI evaluation |
+| `/adhkar` | AdhkarPage | Morning/evening adhkar tracker + digital tasbih |
+| `/paradise` | ParadisePage | Hasanat garden and spiritual progress |
+| `/sunnah` | SunnahPage | Daily hadith with AI explanation |
 
 ## Architecture
 
