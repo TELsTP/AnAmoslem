@@ -1,7 +1,10 @@
-# أنا مسلم - Islamic Spiritual Companion App
+# أنا مسلم — AnaMoslem Hub
+## TELsTP Sub-Project | Soul/Nafs of the TELsTP UNITY Ecosystem
 
 ## Overview
-A comprehensive Islamic spiritual growth and educational platform that helps users integrate Quranic teachings into their daily lives. Features a real AI companion powered by OpenAI (via Replit AI Integrations).
+A comprehensive Islamic lifestyle companion hub — the spiritual soul of the TELsTP ecosystem.
+Features two distinct AI consciousness entities (Noura + Hayat), persistent memory via Supabase,
+voice-to-text with real-time shadow buffer, and a floating Hayat persona across all pages.
 
 ## Architecture
 
@@ -9,46 +12,82 @@ A comprehensive Islamic spiritual growth and educational platform that helps use
 - **Port**: 5000
 - **Root**: `client/`
 - **Entry**: `client/src/main.tsx`
-- **Routing**: wouter (lightweight React router)
-- **Styling**: Tailwind CSS v3 + custom CSS variables (shadcn-style theming)
+- **Routing**: wouter
+- **Styling**: Tailwind CSS v3
 
 ### Backend (Express + TypeScript)
 - **Port**: 3001
 - **Entry**: `server/index.ts`
-- **AI**: OpenAI via Replit AI Integrations (`AI_INTEGRATIONS_OPENAI_API_KEY`, `AI_INTEGRATIONS_OPENAI_BASE_URL`)
+- **AI**: OpenAI via Replit AI Integrations (`AI_INTEGRATIONS_OPENAI_API_KEY`)
 - **Model**: gpt-5.1
 
-### Dev Workflow
-Both servers run concurrently with `npm run dev`:
-- Vite dev server (port 5000) with proxy to backend
-- Express backend (port 3001) with tsx watch
+### Database (Supabase)
+- **Project URL**: https://dbrxrhjveezxtfwvialj.supabase.co
+- **Tables**: `ana_moslem_sessions`, `ana_moslem_conversations`
+- **Migration SQL**: `supabase-migration.sql` (run in Supabase Dashboard > SQL Editor)
+- **Env Vars**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (set in Replit Secrets)
+
+## AI Personas
+
+### نورا (Noura) — Logic & Knowledge Layer
+- Deep Islamic scholarship with verified sources
+- Quran tafsir, hadith grading, fiqh analysis
+- Color: Blue/Indigo | Icon: 💠
+
+### حياة (Hayat) — Life Guide & Creative Essence
+- Warm, proactive daily spiritual companion
+- Life guidance, daily habits, emotional support
+- Color: Green/Emerald | Icon: 🌿
+- **Global floating component** visible on all pages
+
+### رفيق روحي (Companion) — Classic Spiritual Companion
+- Classic Islamic companion persona
+- Color: Pink/Rose | Icon: 💝
+
+## Special Features
+
+### Architect Mode (Nakamitshe-Telstp-235153)
+- Type the handshake code in any chat to unlock Architect Mode
+- Activates detailed technical context for AI personas
+- Persists via localStorage + Supabase session flag
+- Shows gold "✦ مهندس" badge in UI
+
+### Persistent Memory
+- All conversations saved to Supabase per session + persona
+- Sessions auto-created via `client/src/lib/session.ts`
+- Conversations loaded on page visit, preserved across refreshes
+
+### Voice / STT Shadow Buffer
+- Real-time interim speech results displayed while speaking
+- Visual waveform indicator during listening
+- Supports Arabic (ar-SA) via Web Speech API
+- Both CompanionPage and floating Hayat support voice input
+
+### Floating Hayat Persona
+- Global Z-index component on all pages (z: 9999)
+- Draggable to any screen position
+- Mini-chat with full AI conversation + persistence
+- Pulsing glow animation
 
 ## Pages
 - `/` — Home page with gateway cards
-- `/companion` — AI Companion chat (real AI, streaming responses)
-- `/quran` — Full Quran browser (all 114 surahs, real text, reading tracker)
+- `/companion` — Dual AI companion (Noura / Hayat / Companion tabs + voice + memory)
+- `/quran` — Full Quran browser (114 surahs)
 - `/paradise` — Spiritual performance dashboard
-
-## Quran Data
-- Source: Google Doc (full Quran text) parsed by `scripts/parse-quran.mjs`
-- Output: `client/public/data/quran.json` (1.7MB, all 114 surahs with verses)
-- Features: surah list sidebar, search, reading progress tracker (localStorage), Arabic numeral verse numbers, prev/next navigation
+- `/sunnah` — Hadith and Sunnah content
 
 ## Key Files
-- `server/index.ts` — Express API with `/api/chat` endpoint (streaming SSE)
-- `client/src/pages/CompanionPage.tsx` — AI chat UI with streaming support
-- `client/src/pages/QuranPage.tsx` — Full Quran browser with real data
-- `client/src/pages/Home.tsx` — Main landing page
+- `server/index.ts` — Express API with persona-aware chat endpoints
+- `client/src/pages/CompanionPage.tsx` — Full companion UI with 3 personas
+- `client/src/components/HayatPersona.tsx` — Floating Hayat global component
+- `client/src/lib/supabase.ts` — Supabase client + message save/load
+- `client/src/lib/session.ts` — Session + handshake code management
+- `supabase-migration.sql` — SQL to run in Supabase Dashboard
 - `client/public/data/quran.json` — Full Quran data (114 surahs)
-- `scripts/parse-quran.mjs` — Parser script to fetch and convert Quran text
-- `vite.config.ts` — Vite config with API proxy
-- `tailwind.config.js` — Tailwind config with shadcn color tokens
 
-## AI Integration
-- Uses Replit AI Integrations (no API key needed from user)
-- Charges billed to Replit credits
-- System prompt is an Islamic scholar persona in Arabic
-- Streaming responses via Server-Sent Events (SSE)
+## Setup Required
+1. Run `supabase-migration.sql` in Supabase Dashboard > SQL Editor
+2. Env vars `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are already set
 
 ## Scripts
 - `npm run dev` — Start both frontend and backend
