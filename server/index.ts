@@ -3,7 +3,7 @@ import OpenAI from "openai";
 import { HADITH_DATA, TOPICS, getDailyHadith, getHadithByTopic, searchHadith } from "./hadith-data.js";
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
