@@ -6,7 +6,7 @@ from MISTRAL_API_KEY.modelfrom MISTRAL_API_KEY.models.chat_completion import Cha
 s.chat_completion import ChatMessage
 
 # إعداد الثوابت
-MISTRAL_API_KEY = "WtLlj870At2RddRq6rA8ILEyNokZxPvok"
+MISTRAL_API_KEY = os.environ.get("MISTRAL_API_KEY")
 MODEL_NAME = "mistral-large-latest"
 QURAN_FILE_PATH = "quran.json"
 
