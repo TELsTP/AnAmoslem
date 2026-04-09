@@ -25,6 +25,22 @@ function toArabicNumeral(n: number) {
   return String(n).split("").map((c) => ["٠","١","٢","٣","٤","٥","٦","٧","٨","٩"][parseInt(c)] ?? c).join("");
 }
 
+const TASHKEEL_RE = /[\u064B-\u065F\u0670\u0610-\u061A\u06D6-\u06ED]/;
+
+function GoldenVerseText({ text, dimmed = false }: { text: string; dimmed?: boolean }) {
+  return (
+    <span dir="rtl" style={{ fontFamily: "'Amiri', serif" }}>
+      {[...text].map((char, i) =>
+        TASHKEEL_RE.test(char) ? (
+          <span key={i} style={{ color: dimmed ? '#c9a84c' : '#B5891A', opacity: dimmed ? 0.5 : 1 }}>{char}</span>
+        ) : (
+          <span key={i} style={{ color: dimmed ? '#9ca3af' : '#1a1a1a' }}>{char}</span>
+        )
+      )}
+    </span>
+  );
+}
+
 export default function WirdPage() {
   const [, navigate] = useLocation();
   const [surahs, setSurahs] = useState<Surah[]>([]);
@@ -172,23 +188,23 @@ export default function WirdPage() {
   const renderColoredText = () => {
     if (!result || !currentVerse) return null;
     const words = currentVerse.text.split(" ");
-    const errorMap = new Map(result.detailed_errors.map((e) => [e.word_index, e]));
+    const errorMap = new Map((result.detailed_errors ?? []).map((e) => [e.word_index, e]));
     return (
-      <div className="flex flex-wrap justify-center gap-2 leading-loose" dir="rtl">
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 leading-loose" dir="rtl" style={{ fontSize: '1.8rem' }}>
         {words.map((word, i) => {
           const err = errorMap.get(i);
           if (err) {
             return (
-              <span key={i} className="relative group cursor-help">
-                <span className="text-red-500 line-through">{err.provided}</span>
-                <span className="text-amber-500 mr-1">({word})</span>
+              <span key={i} className="relative group cursor-help inline-flex items-baseline gap-1">
+                <span style={{ color: '#dc2626', textDecoration: 'line-through', fontFamily: "'Amiri', serif" }}>{err.provided}</span>
+                <span style={{ color: '#B5891A', fontFamily: "'Amiri', serif" }}>({word})</span>
                 <span className="absolute -top-8 right-0 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-10">
                   {err.type === "shakl" ? "خطأ تشكيل" : "خطأ كلمة"}
                 </span>
               </span>
             );
           }
-          return <span key={i} className="text-green-400">{word}</span>;
+          return <GoldenVerseText key={i} text={word} />;
         })}
       </div>
     );
@@ -276,101 +292,157 @@ export default function WirdPage() {
       </main>
 
       {sessionActive && (
-        <div className="fixed inset-0 bg-[#fdfcf8] dark:bg-zinc-950 z-[9998] flex flex-col" dir="rtl">
-          <div className="p-4 md:p-6 flex justify-between items-center border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 shadow-sm">
+        <div className="fixed inset-0 z-[9998] flex flex-col" style={{ background: '#fdfcf5' }} dir="rtl">
+
+          {/* Header */}
+          <div
+            className="flex justify-between items-center px-5 py-3 sticky top-0 shadow-sm"
+            style={{ background: '#fdfcf5', borderBottom: '1px solid rgba(181,137,26,0.25)' }}
+          >
             <div>
-              <h1 className="text-xl font-black text-emerald-700 dark:text-emerald-400">المحراب — تسميع الورد</h1>
-              <p className="text-gray-500 text-sm mt-1">
+              <h1 className="text-lg font-black" style={{ color: '#8a6000' }}>المحراب — تسميع الورد</h1>
+              <p className="text-xs" style={{ color: '#b09060' }}>
                 سورة {selectedSurah?.name} — آية {toArabicNumeral(currentVerse?.number || 1)}
                 {" "}({toArabicNumeral(currentVerseIdx + 1)}/{toArabicNumeral(sessionVerses.length)})
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex gap-1">
+              {/* Golden progress dots */}
+              <div className="flex gap-1.5">
                 {sessionVerses.map((_, i) => (
                   <div
                     key={i}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      completedVerses.includes(i) ? "bg-emerald-500" :
-                      i === currentVerseIdx ? "bg-amber-500" : "bg-gray-300 dark:bg-zinc-600"
-                    }`}
+                    className="w-2.5 h-2.5 rounded-full transition-all duration-500"
+                    style={{
+                      background: completedVerses.includes(i)
+                        ? 'linear-gradient(135deg,#B5891A,#e4b94a)'
+                        : i === currentVerseIdx
+                        ? '#c9a84c'
+                        : '#e0d5b8',
+                      boxShadow: completedVerses.includes(i) ? '0 0 6px rgba(181,137,26,0.6)' : 'none',
+                    }}
                   />
                 ))}
               </div>
               <button
                 onClick={stopSession}
-                className="bg-red-50 hover:bg-red-100 dark:bg-red-900/20 text-red-600 px-4 py-2 rounded-full font-bold transition text-sm"
+                className="text-sm font-bold px-3 py-1.5 rounded-full transition"
+                style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}
               >
                 إنهاء ✕
               </button>
             </div>
           </div>
 
+          {/* Golden fill progress bar */}
+          <div className="h-0.5 w-full" style={{ background: 'rgba(181,137,26,0.12)' }}>
+            <div
+              className="h-full transition-all duration-700"
+              style={{
+                width: `${(completedVerses.length / Math.max(sessionVerses.length, 1)) * 100}%`,
+                background: 'linear-gradient(90deg, #B5891A, #e4b94a)',
+              }}
+            />
+          </div>
+
           {sessionComplete ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <Trophy className="w-20 h-20 text-amber-500 mb-6" />
-              <h2 className="text-3xl font-black text-emerald-700 dark:text-emerald-400 mb-4">أحسنت! 🎉</h2>
-              <p className="text-gray-500 text-lg mb-2">لقد أتممت جلسة تسميع</p>
-              <p className="text-emerald-600 font-bold text-xl mb-8">
+              <div className="text-6xl mb-4">🏆</div>
+              <h2 className="text-3xl font-black mb-3" style={{ color: '#8a6000' }}>أحسنت!</h2>
+              <p className="text-gray-500 text-lg mb-2">أتممتَ جلسة تسميع</p>
+              <p className="font-bold text-xl mb-8" style={{ color: '#B5891A' }}>
                 {toArabicNumeral(sessionVerses.length)} آيات من سورة {selectedSurah?.name}
               </p>
               <div className="flex gap-4">
                 <button
                   onClick={startSession}
-                  className="bg-emerald-600 text-white px-8 py-3 rounded-full font-bold hover:bg-emerald-700 transition"
+                  className="px-8 py-3 rounded-full font-bold transition text-white"
+                  style={{ background: 'linear-gradient(135deg,#B5891A,#e4b94a)' }}
                 >
                   إعادة الجلسة
                 </button>
                 <button
                   onClick={stopSession}
-                  className="bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 px-8 py-3 rounded-full font-bold hover:bg-gray-200 transition"
+                  className="px-8 py-3 rounded-full font-bold transition"
+                  style={{ background: '#f5edd8', color: '#8a6000' }}
                 >
                   اختيار ورد جديد
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 max-w-4xl mx-auto w-full">
-              <div className="w-full mb-8">
+            <div className="flex-1 flex flex-col items-center justify-center p-5 md:p-10 max-w-2xl mx-auto w-full gap-5">
+
+              {/* Reference verse — ornate golden frame */}
+              <div className="w-full relative">
                 <div
+                  className="relative rounded-2xl p-6 text-center cursor-pointer select-none transition-all duration-500 overflow-hidden"
+                  style={{
+                    border: '2px solid rgba(181,137,26,0.45)',
+                    background: showOriginal
+                      ? 'linear-gradient(135deg,#fffef8 0%,#fef9e7 50%,#fffef8 100%)'
+                      : '#faf8f2',
+                    boxShadow: '0 0 0 1px rgba(181,137,26,0.1), 0 4px 24px rgba(181,137,26,0.08)',
+                  }}
                   onClick={() => setShowOriginal(!showOriginal)}
-                  className={`text-center text-3xl md:text-4xl leading-loose font-amiri cursor-pointer select-none transition-all duration-500 p-6 rounded-2xl border ${
-                    showOriginal
-                      ? "text-gray-700 dark:text-gray-200 bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700"
-                      : "text-gray-300 dark:text-zinc-700 bg-gray-50 dark:bg-zinc-900 border-dashed border-gray-200 dark:border-zinc-800 blur-[3px] hover:blur-0"
-                  }`}
                   title="انقر لإظهار/إخفاء الآية"
-                  dir="rtl"
-                  style={{ fontFamily: "'Amiri', serif" }}
                 >
-                  {currentVerse?.text}
-                </div>
-                <div className="flex justify-center gap-2 mt-2">
-                  <button
-                    onClick={() => setShowOriginal(!showOriginal)}
-                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                  {/* Corner ornaments */}
+                  {['top-2 right-2','top-2 left-2','bottom-2 right-2','bottom-2 left-2'].map((pos) => (
+                    <span key={pos} className={`absolute ${pos} text-sm`} style={{ color: '#B5891A', opacity: 0.6 }}>✦</span>
+                  ))}
+
+                  {/* Golden fill layer based on completion */}
+                  <div
+                    className="absolute inset-0 rounded-2xl pointer-events-none transition-all duration-1000"
+                    style={{
+                      background: `linear-gradient(90deg, rgba(181,137,26,0.07) 0%, rgba(228,185,74,0.12) 100%)`,
+                      width: `${(completedVerses.length / Math.max(sessionVerses.length, 1)) * 100}%`,
+                    }}
+                  />
+
+                  <div
+                    className={`relative text-3xl md:text-4xl leading-loose transition-all duration-500 ${!showOriginal ? 'blur-[4px]' : ''}`}
                   >
-                    {showOriginal ? <EyeOff size={12} /> : <Eye size={12} />}
-                    {showOriginal ? "إخفاء الآية" : "إظهار الآية للمساعدة"}
-                  </button>
+                    {currentVerse && <GoldenVerseText text={currentVerse.text} dimmed={!showOriginal} />}
+                  </div>
                 </div>
+                <button
+                  onClick={() => setShowOriginal(!showOriginal)}
+                  className="flex items-center gap-1 text-xs mx-auto mt-1.5 transition"
+                  style={{ color: '#b09060' }}
+                >
+                  {showOriginal ? <EyeOff size={12} /> : <Eye size={12} />}
+                  {showOriginal ? "إخفاء الآية" : "إظهار الآية للمساعدة"}
+                </button>
               </div>
 
-              <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-inner border border-gray-100 dark:border-zinc-800 p-6 md:p-10 min-h-[120px] mb-4 text-center">
+              {/* Recitation input area — ornate frame */}
+              <div
+                className="w-full rounded-2xl p-6 md:p-8 min-h-[100px] text-center relative overflow-hidden"
+                style={{
+                  border: '2px solid rgba(181,137,26,0.3)',
+                  background: '#ffffff',
+                  boxShadow: 'inset 0 2px 12px rgba(181,137,26,0.04)',
+                }}
+              >
+                <span className="absolute top-2 right-2 text-xs" style={{ color: 'rgba(181,137,26,0.3)' }}>﴾</span>
+                <span className="absolute top-2 left-2 text-xs" style={{ color: 'rgba(181,137,26,0.3)' }}>﴿</span>
+
                 {result ? (
                   <div>
-                    <div className="text-3xl md:text-4xl leading-loose mb-4" style={{ fontFamily: "'Amiri', serif" }}>
-                      {renderColoredText()}
-                    </div>
-                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4 ${
-                      result.status === "perfect"
-                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                        : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
-                    }`}>
+                    <div className="mb-4">{renderColoredText()}</div>
+                    <div
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-3"
+                      style={{
+                        background: result.status === "perfect" ? 'rgba(181,137,26,0.1)' : 'rgba(220,38,38,0.07)',
+                        color: result.status === "perfect" ? '#8a6000' : '#dc2626',
+                      }}
+                    >
                       {result.status === "perfect" ? "✅ ممتاز!" : `⚠️ دقة التشكيل: ${result.accuracy_score}%`}
                     </div>
                     {result.teacher_note && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-zinc-800 rounded-xl p-3 mt-2" dir="rtl">
+                      <p className="text-sm rounded-xl p-3 mt-1" style={{ color: '#8a7050', background: '#faf8f0' }} dir="rtl">
                         💬 {result.teacher_note}
                       </p>
                     )}
@@ -378,14 +450,12 @@ export default function WirdPage() {
                 ) : (
                   <div>
                     {(finalText || interimText) ? (
-                      <div className="text-2xl md:text-3xl leading-loose" style={{ fontFamily: "'Amiri', serif" }} dir="rtl">
-                        <span className="text-gray-800 dark:text-gray-200">{finalText}</span>
-                        {interimText && (
-                          <span className="text-gray-400 dark:text-gray-600 italic"> {interimText}</span>
-                        )}
+                      <div className="text-2xl md:text-3xl leading-loose" style={{ fontFamily: "'Amiri', serif", color: '#2d2000' }} dir="rtl">
+                        {finalText}
+                        {interimText && <span style={{ color: '#c9a84c', opacity: 0.7 }}> {interimText}</span>}
                       </div>
                     ) : (
-                      <span className="text-gray-400 dark:text-zinc-600 text-lg italic">
+                      <span className="text-lg italic" style={{ color: 'rgba(181,137,26,0.4)' }}>
                         ... اقرأ الآية ليظهر ترتيلك هنا ...
                       </span>
                     )}
@@ -393,43 +463,50 @@ export default function WirdPage() {
                 )}
               </div>
 
+              {/* Listening indicator */}
               {isListening && (
-                <div className="flex items-center gap-2 mb-4">
-                  {[0,1,2,3,4].map((i) => (
+                <div className="flex items-center gap-2">
+                  {[16,24,14,20,18].map((h, i) => (
                     <div
                       key={i}
-                      className="w-1 bg-emerald-500 rounded-full animate-pulse"
-                      style={{ height: `${12 + Math.random() * 20}px`, animationDelay: `${i * 120}ms` }}
+                      className="w-1 rounded-full animate-pulse"
+                      style={{ height: `${h}px`, background: '#B5891A', animationDelay: `${i * 100}ms` }}
                     />
                   ))}
-                  <span className="text-emerald-600 dark:text-emerald-400 text-sm font-bold mr-2">جاري الاستماع...</span>
+                  <span className="text-sm font-bold mr-1" style={{ color: '#8a6000' }}>جاري الاستماع...</span>
                 </div>
               )}
 
-              <div className="flex flex-col items-center gap-4 mt-2">
+              {/* Controls */}
+              <div className="flex flex-col items-center gap-4 w-full">
                 {!result && (
-                  <div className="text-emerald-700 dark:text-emerald-400 font-bold text-lg">
+                  <p className="font-semibold" style={{ color: '#8a6000' }}>
                     {isListening ? "جاري التسجيل..." : "انقر على الميكروفون للبدء"}
-                  </div>
+                  </p>
                 )}
 
                 <div className="flex items-center gap-6">
                   <button
                     onClick={resetVerse}
-                    className="w-12 h-12 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-700 transition"
+                    className="w-12 h-12 rounded-full flex items-center justify-center transition"
+                    style={{ background: '#f5edd8', color: '#8a6000' }}
                     title="إعادة المحاولة"
                   >
                     <RotateCcw size={18} />
                   </button>
 
                   <button
-                    id="mic-btn"
                     onClick={isListening ? stopListening : startListening}
-                    className={`w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all transform hover:scale-105 active:scale-95 ${
-                      isListening
-                        ? "bg-red-500 hover:bg-red-600 text-white animate-pulse"
-                        : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    }`}
+                    className="w-24 h-24 rounded-full flex items-center justify-center shadow-xl transition-all transform hover:scale-105 active:scale-95"
+                    style={{
+                      background: isListening
+                        ? '#dc2626'
+                        : 'linear-gradient(135deg,#B5891A,#e4b94a)',
+                      color: '#fff',
+                      boxShadow: isListening
+                        ? '0 0 0 8px rgba(220,38,38,0.15)'
+                        : '0 0 0 8px rgba(181,137,26,0.15), 0 8px 24px rgba(181,137,26,0.35)',
+                    }}
                   >
                     {isListening ? <MicOff size={36} /> : <Mic size={36} />}
                   </button>
@@ -437,7 +514,8 @@ export default function WirdPage() {
                   {result ? (
                     <button
                       onClick={nextVerse}
-                      className="w-12 h-12 rounded-full bg-emerald-600 flex items-center justify-center text-white hover:bg-emerald-700 transition"
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white transition"
+                      style={{ background: 'linear-gradient(135deg,#B5891A,#e4b94a)' }}
                       title="الآية التالية"
                     >
                       <ChevronLeft size={20} />
@@ -446,7 +524,8 @@ export default function WirdPage() {
                     <button
                       onClick={checkRecitation}
                       disabled={!finalText.trim() || isEvaluating}
-                      className="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center text-white hover:bg-amber-600 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white transition disabled:opacity-40"
+                      style={{ background: '#c9a84c' }}
                       title="فحص التلاوة"
                     >
                       {isEvaluating ? (
@@ -462,7 +541,8 @@ export default function WirdPage() {
                   <button
                     onClick={checkRecitation}
                     disabled={!finalText.trim() || isEvaluating}
-                    className="bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white px-10 py-3 rounded-2xl font-black text-lg transition shadow-lg"
+                    className="px-10 py-3 rounded-2xl font-black text-lg transition shadow-lg disabled:opacity-40 text-white"
+                    style={{ background: 'linear-gradient(135deg,#B5891A,#e4b94a)' }}
                   >
                     {isEvaluating ? "جاري التقييم الذكي..." : "✅ تأكيد التسميع وفحص الأخطاء"}
                   </button>
@@ -471,7 +551,8 @@ export default function WirdPage() {
                 {result && (
                   <button
                     onClick={nextVerse}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-2xl font-black text-lg transition shadow-lg flex items-center gap-2"
+                    className="px-10 py-3 rounded-2xl font-black text-lg transition shadow-lg text-white flex items-center gap-2"
+                    style={{ background: 'linear-gradient(135deg,#B5891A,#e4b94a)' }}
                   >
                     {currentVerseIdx + 1 >= sessionVerses.length ? "إنهاء الجلسة 🏆" : "الآية التالية ←"}
                   </button>
