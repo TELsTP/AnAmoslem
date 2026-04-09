@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
   BookOpen, Search, ChevronLeft, CheckCircle, Circle,
-  Menu, X, Mic, MicOff, SkipForward, Trophy, RotateCcw,
+  Menu, X, Mic, MicOff, SkipForward, Trophy, RotateCcw, Settings,
 } from "lucide-react";
 
 interface Verse {
@@ -61,6 +61,215 @@ function toArabicNumeral(n: number) {
   return String(n).split('').map(c => d[parseInt(c)] ?? c).join('');
 }
 
+type Sensitivity = 'strict' | 'normal' | 'lenient';
+interface VoiceProfile {
+  sensitivity: Sensitivity;
+  calibratedAt: string;
+  usageCount: number;
+}
+
+const SENSITIVITY_RATIO: Record<Sensitivity, number> = {
+  strict: 0.85,
+  normal: 0.70,
+  lenient: 0.50,
+};
+
+const CALIBRATION_WORDS: { display: string; expected: string }[] = [
+  { display: "بِسْمِ",     expected: "بسم"     },
+  { display: "اللَّهِ",    expected: "الله"    },
+  { display: "الرَّحْمَنِ", expected: "الرحمن"  },
+  { display: "الرَّحِيمِ", expected: "الرحيم"  },
+  { display: "الْحَمْدُ",  expected: "الحمد"   },
+];
+
+function loadVoiceProfile(): VoiceProfile | null {
+  try {
+    const s = localStorage.getItem("quran_voice_profile");
+    if (s) return JSON.parse(s) as VoiceProfile;
+  } catch {}
+  return null;
+}
+
+function saveVoiceProfile(p: VoiceProfile) {
+  try { localStorage.setItem("quran_voice_profile", JSON.stringify(p)); } catch {}
+}
+
+function shouldAutoCalibrate(profile: VoiceProfile | null, isRegistered: boolean): boolean {
+  if (!profile) return true;
+  if (!isRegistered) return false;
+  return profile.usageCount > 0 && profile.usageCount % 5 === 0;
+}
+
+function VoiceCalibrationModal({
+  onComplete,
+  onSkip,
+}: {
+  onComplete: (sensitivity: Sensitivity) => void;
+  onSkip: () => void;
+}) {
+  const [step, setStep] = useState<'intro' | 'testing' | 'result'>('intro');
+  const [wordIdx, setWordIdx] = useState(0);
+  const [exactMatches, setExactMatches] = useState(0);
+  const [isListening, setIsListening] = useState(false);
+  const [feedback, setFeedback] = useState<'waiting' | 'heard' | 'missed'>('waiting');
+  const [result, setResult] = useState<Sensitivity>('normal');
+  const recRef = useRef<any>(null);
+
+  const stopRec = () => {
+    recRef.current?.stop();
+    recRef.current = null;
+    setIsListening(false);
+  };
+
+  const computeSensitivity = (exact: number): Sensitivity => {
+    if (exact >= 4) return 'strict';
+    if (exact >= 2) return 'normal';
+    return 'lenient';
+  };
+
+  const advanceWord = useCallback((matched: boolean) => {
+    stopRec();
+    const newExact = matched ? exactMatches + 1 : exactMatches;
+    const nextIdx = wordIdx + 1;
+    if (matched) setExactMatches(newExact);
+    setFeedback(matched ? 'heard' : 'missed');
+    setTimeout(() => {
+      if (nextIdx >= CALIBRATION_WORDS.length) {
+        const sens = computeSensitivity(newExact);
+        setResult(sens);
+        setStep('result');
+      } else {
+        setWordIdx(nextIdx);
+        setFeedback('waiting');
+      }
+    }, 800);
+  }, [exactMatches, wordIdx]);
+
+  const listenForWord = useCallback(() => {
+    if (!SpeechRec) return;
+    const rec = new SpeechRec();
+    rec.lang = 'ar-SA';
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.maxAlternatives = 3;
+    rec.onstart = () => setIsListening(true);
+    rec.onend = () => setIsListening(false);
+    rec.onerror = () => { setIsListening(false); advanceWord(false); };
+    rec.onresult = (e: any) => {
+      const transcript = e.results[0]?.[0]?.transcript ?? '';
+      const norm = normalizeArabic(transcript.trim().split(/\s+/)[0] ?? '');
+      const expected = CALIBRATION_WORDS[wordIdx].expected;
+      const isExact = norm === expected;
+      advanceWord(isExact);
+    };
+    recRef.current = rec;
+    rec.start();
+  }, [wordIdx, advanceWord]);
+
+  useEffect(() => { return () => stopRec(); }, []);
+
+  const currentWord = CALIBRATION_WORDS[wordIdx];
+
+  const sensitivityLabel: Record<Sensitivity, { ar: string; color: string; desc: string }> = {
+    strict:  { ar: 'دقيق',    color: 'text-green-600',  desc: 'صوتك واضح جداً — النظام سيعمل بدقة عالية' },
+    normal:  { ar: 'متوازن',  color: 'text-blue-600',   desc: 'مستوى جيد — التطبيق سيتعامل مع صوتك باتزان' },
+    lenient: { ar: 'متساهل',  color: 'text-amber-600',  desc: 'سيكون النظام أكثر تساهلاً لتناسب نطقك' },
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" dir="rtl">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+
+        {step === 'intro' && (
+          <>
+            <div className="text-4xl mb-4">🎙️</div>
+            <h2 className="text-xl font-bold mb-2">معايرة الصوت</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              سنطلب منك قراءة ٥ كلمات قصيرة لضبط حساسية التعرف على صوتك وتحسين دقة التسميع.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => { setStep('testing'); setWordIdx(0); setExactMatches(0); setFeedback('waiting'); }}
+                className="px-5 py-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                ابدأ المعايرة
+              </button>
+              <button
+                onClick={onSkip}
+                className="px-5 py-2.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-colors text-sm"
+              >
+                تخطي
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 'testing' && (
+          <>
+            <div className="flex justify-center gap-1.5 mb-5">
+              {CALIBRATION_WORDS.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i < wordIdx ? 'bg-green-400 w-6' : i === wordIdx ? 'bg-blue-500 w-8' : 'bg-muted w-6'
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              كلمة {toArabicNumeral(wordIdx + 1)} من {toArabicNumeral(CALIBRATION_WORDS.length)}
+            </p>
+            <div
+              className="verse-display text-5xl font-bold mb-6 py-4"
+              style={{ lineHeight: '2' }}
+            >
+              <TashkeelText text={currentWord.display} tashkeelColor="#B5891A" />
+            </div>
+
+            {feedback === 'heard' && (
+              <div className="text-green-600 font-medium mb-4 animate-pulse">✓ أحسنت!</div>
+            )}
+            {feedback === 'missed' && (
+              <div className="text-red-500 font-medium mb-4">حاول مرة أخرى في الكلمة التالية</div>
+            )}
+            {feedback === 'waiting' && (
+              <p className="text-muted-foreground text-sm mb-4">اضغط على الميكروفون ثم اقرأ الكلمة</p>
+            )}
+
+            <button
+              onClick={listenForWord}
+              disabled={isListening || feedback !== 'waiting'}
+              className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center shadow-lg transition-all
+                ${isListening ? 'bg-red-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-700'}
+                text-white disabled:opacity-50`}
+            >
+              <Mic className="w-7 h-7" />
+            </button>
+          </>
+        )}
+
+        {step === 'result' && (
+          <>
+            <div className="text-5xl mb-4">✅</div>
+            <h2 className="text-xl font-bold mb-2">اكتملت المعايرة</h2>
+            <p className="text-sm text-muted-foreground mb-2">مستوى حساسية صوتك:</p>
+            <div className={`text-2xl font-bold mb-1 ${sensitivityLabel[result].color}`}>
+              {sensitivityLabel[result].ar}
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">{sensitivityLabel[result].desc}</p>
+            <button
+              onClick={() => onComplete(result)}
+              className="px-6 py-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              ابدأ التسميع
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TashkeelText({ text, tashkeelColor = "#B5891A" }: { text: string; tashkeelColor?: string }) {
   return (
     <>
@@ -96,9 +305,19 @@ const SpeechRec =
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     : null;
 
-function RecitationMode({ surah, onClose }: { surah: Surah; onClose: () => void }) {
+function RecitationMode({ surah, onClose, isRegistered = false }: { surah: Surah; onClose: () => void; isRegistered?: boolean }) {
   const wordList = useRef(buildWordList(surah));
   const total = wordList.current.length;
+
+  const [voiceProfile, setVoiceProfile] = useState<VoiceProfile | null>(() => loadVoiceProfile());
+  const [showCalibration, setShowCalibration] = useState<boolean>(() => {
+    const p = loadVoiceProfile();
+    return shouldAutoCalibrate(p, isRegistered);
+  });
+
+  const sensitivity: Sensitivity = voiceProfile?.sensitivity ?? 'normal';
+  const sensitivityRef = useRef<Sensitivity>(sensitivity);
+  useEffect(() => { sensitivityRef.current = sensitivity; }, [sensitivity]);
 
   const [revealed, setRevealed] = useState<RevealedWord[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -110,6 +329,26 @@ function RecitationMode({ surah, onClose }: { surah: Surah; onClose: () => void 
   const revealedContainerRef = useRef<HTMLDivElement>(null);
   const currentIdxRef = useRef(0);
   const revealedRef = useRef<RevealedWord[]>([]);
+
+  useEffect(() => {
+    const p = loadVoiceProfile();
+    if (p && !shouldAutoCalibrate(p, isRegistered)) {
+      const updated: VoiceProfile = { ...p, usageCount: p.usageCount + 1 };
+      saveVoiceProfile(updated);
+      setVoiceProfile(updated);
+    }
+  }, [isRegistered]);
+
+  const handleCalibrationComplete = (sens: Sensitivity) => {
+    const p: VoiceProfile = {
+      sensitivity: sens,
+      calibratedAt: new Date().toISOString(),
+      usageCount: 1,
+    };
+    saveVoiceProfile(p);
+    setVoiceProfile(p);
+    setShowCalibration(false);
+  };
 
   useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
   useEffect(() => { revealedRef.current = revealed; }, [revealed]);
@@ -138,12 +377,17 @@ function RecitationMode({ surah, onClose }: { surah: Surah; onClose: () => void 
   const handleRecognized = useCallback((text: string) => {
     const recognizedWords = text.trim().split(/\s+/).filter(Boolean);
     let idx = currentIdxRef.current;
+    const ratio = SENSITIVITY_RATIO[sensitivityRef.current];
     for (const rw of recognizedWords) {
       if (idx >= total) break;
       const expected = wordList.current[idx];
       const normExpected = normalizeArabic(expected.word);
       const normRecognized = normalizeArabic(rw);
-      const isMatch = normExpected === normRecognized || normExpected.startsWith(normRecognized) || normRecognized.startsWith(normExpected);
+      const minLen = Math.max(2, Math.floor(normExpected.length * ratio));
+      const isPrefixMatch =
+        (normExpected.startsWith(normRecognized) && normRecognized.length >= minLen) ||
+        (normRecognized.startsWith(normExpected) && normExpected.length >= Math.max(2, Math.floor(normRecognized.length * ratio)));
+      const isMatch = normExpected === normRecognized || isPrefixMatch;
       revealWord(idx, isMatch ? "correct" : "error");
       idx++;
     }
@@ -247,6 +491,12 @@ function RecitationMode({ surah, onClose }: { surah: Surah; onClose: () => void 
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col" dir="rtl">
+      {showCalibration && (
+        <VoiceCalibrationModal
+          onComplete={handleCalibrationComplete}
+          onSkip={() => setShowCalibration(false)}
+        />
+      )}
       <div className="border-b border-border px-4 py-3 flex items-center justify-between flex-shrink-0">
         <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
           <X className="w-5 h-5" />
@@ -257,7 +507,13 @@ function RecitationMode({ surah, onClose }: { surah: Surah; onClose: () => void 
             {toArabicNumeral(currentIdx)} / {toArabicNumeral(total)} كلمة
           </div>
         </div>
-        <div className="w-10" />
+        <button
+          onClick={() => setShowCalibration(true)}
+          title="معايرة الصوت"
+          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
       </div>
 
       <div className="px-4 py-2 flex-shrink-0">
