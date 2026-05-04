@@ -1,9 +1,11 @@
 import { BookOpen, Heart, Briefcase, Sparkles, Mic, Moon } from "lucide-react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
+import { getUserProfile } from "../lib/user-session";
 
 export default function Home() {
   const [, navigate] = useLocation();
+  const user = getUserProfile();
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "صباح النور" : hour < 17 ? "مساء الخير" : "مساء النور";
@@ -19,6 +21,9 @@ export default function Home() {
 
       <main className="container py-10">
         <div className="text-center mb-14">
+          <div className="mb-4 text-sm text-muted-foreground">
+            {user ? `مرحباً يا ${user.name} 👋` : "سجّل دخولك لتجربة خاصة بك"}
+          </div>
           <div
             className="verse-display text-primary mb-4"
             style={{ fontSize: "1.75rem", lineHeight: "2.8", letterSpacing: "0.05em", fontFamily: "'Amiri', serif" }}
@@ -102,16 +107,16 @@ export default function Home() {
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <button
-              onClick={() => navigate("/companion")}
+              onClick={() => navigate("/login")}
               className="bg-gradient-to-r from-pink-500 to-rose-600 text-white px-8 py-3 rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity"
             >
-              تحدث مع حياة 🌿
+              {user ? "تحدث مع حياة 🌿" : "ابدأ من صفحة الدخول"}
             </button>
             <button
-              onClick={() => navigate("/wird")}
+              onClick={() => navigate("/login")}
               className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-8 py-3 rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity"
             >
-              ابدأ وردك اليومي 🎙️
+              {user ? "ابدأ وردك اليومي 🎙️" : "سجّل دخولك أولاً"}
             </button>
           </div>
         </div>
