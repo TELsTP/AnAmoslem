@@ -82,13 +82,12 @@ export default function Home() {
             onClick={() => navigate("/sunnah")}
           />
           <GatewayCard
-            title="دنيتي"
-            subtitle="My World"
-            description="عملي وأسرتي وجاري وأخلاقي"
-            icon={<Briefcase className="w-8 h-8" />}
+            title="المكتبة"
+            subtitle="Islamic Library"
+            description="كتب ومراجع وشروح وتفاسير وسيرة وحديث في مكان واحد"
+            icon={<BookOpen className="w-8 h-8" />}
             color="from-slate-500 to-slate-600"
-            onClick={() => {}}
-            comingSoon
+            onClick={() => navigate("/library")}
           />
         </div>
 
