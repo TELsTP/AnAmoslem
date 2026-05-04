@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أنا مسلم - المحراب الرقمي الشامل</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;500;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --islamic-green: #065f46;
+            --gold: #d4af37;
+            --soft-bg: #fdfcf8;
+        }
+        body { font-family: 'Tajawal', sans-serif; background-color: var(--soft-bg); }
+        .quran-font { font-family: 'Amiri', serif; font-size: 1.8rem; line-height: 3rem; }
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .nav-active { border-bottom: 3px solid var(--gold); color: var(--islamic-green); }
+        .quran-container::-webkit-scrollbar { width: 6px; }
+        .quran-container::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade { animation: fadeIn 0.5s ease-in-out; }
+    </style>
+</head>
+<body class="text-gray-900">
+
+    <!-- Navigation Bar -->
+    <nav class="sticky top-0 z-50 glass-morphism shadow-md px-6 py-3">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-700 text-white p-2 rounded-xl shadow-lg">🌙</div>
+                <h1 class="text-2xl font-black text-emerald-900 tracking-tighter">أنا مسلم <span class="text-amber-500 text-sm">V2.0</span></h1>
+            </div>
+            <div class="hidden lg:flex gap-8 text-sm font-bold text-gray-500" id="mainNav">
+                <button onclick="switchTab('home')" class="nav-btn nav-active">الرئيسية</button>
+                <button onclick="switchTab('quran')" class="nav-btn">المصحف الشريف</button>
+                <button onclick="switchTab('library')" class="nav-btn">مكتبة العباقرة</button>
+                <button onclick="switchTab('prayers')" class="nav-btn">الأذكار والمواقيت</button>
+            </div>
+            <div id="currentTime" class="text-xs font-bold text-emerald-800 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
+                جاري التحميل...
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8">
+
+        <!-- Home Tab -->
+        <section id="home" class="tab-content active animate-fade">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Daily Insight Card -->
+                <div class="lg:col-span-2 bg-gradient-to-br from-emerald-800 to-emerald-950 rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl">
+                    <div class="relative z-10">
+                        <span class="bg-emerald-500/30 text-emerald-100 px-4 py-1 rounded-full text-xs font-bold">آية اليوم وإعجازها</span>
+                        <h2 class="quran-font mt-6 mb-4 text-3xl leading-relaxed">"إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ"</h2>
+                        <p class="text-emerald-200 text-sm leading-relaxed mb-8 max-w-xl">
+                            يقول الشيخ الشعراوي: القرآن لا يعطيك أسراره إلا إذا أقبلت عليه بقلبٍ سليم، فهو معجز في لفظه، ومعجز في هدايته، ومعجز في بقائه.
+                        </p>
+                        <div class="flex gap-4">
+                            <button onclick="switchTab('quran')" class="bg-amber-500 hover:bg-amber-600 text-emerald-950 px-6 py-3 rounded-2xl font-bold transition shadow-lg">تصفح المصحف</button>
+                            <button onclick="switchTab('library')" class="bg-white/10 hover:bg-white/20 px-6 py-3 rounded-2xl font-bold transition">قراءة التفاسير</button>
+                        </div>
+                    </div>
+                    <div class="absolute -bottom-10 -left-10 text-[15rem] opacity-5 select-none">☪</div>
+                </div>
+
+                <!-- Prayer Times Card -->
+                <div class="bg-white rounded-[3rem] p-8 shadow-xl border border-gray-100">
+                    <h3 class="font-black text-emerald-900 mb-6 flex items-center justify-between">
+                        <span>مواقيت الصلاة</span>
+                        <span class="text-xs text-gray-400">القاهرة، مصر</span>
+                    </h3>
+                    <div class="space-y-4" id="prayerTimesList">
+                        <!-- Dynamic Prayer Times -->
+                        <div class="flex justify-between items-center p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
+                            <span class="font-bold text-emerald-800">الفجر</span>
+                            <span class="font-black">04:32 ص</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-2xl">
+                            <span class="font-bold text-gray-700">الظهر</span>
+                            <span class="font-black">12:05 م</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-2xl">
+                            <span class="font-bold text-gray-700">العصر</span>
+                            <span class="font-black">03:38 م</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-2xl">
+                            <span class="font-bold text-gray-700">المغرب</span>
+                            <span class="font-black">06:22 م</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-2xl">
+                            <span class="font-bold text-gray-700">العشاء</span>
+                            <span class="font-black">07:45 م</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quran Tab -->
+        <section id="quran" class="tab-content animate-fade">
+            <div class="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-emerald-50 flex flex-col h-[800px]">
+                <div class="bg-emerald-900 p-6 text-white flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center text-emerald-900 text-xl font-bold">📖</div>
+                        <div>
+                            <h2 class="font-bold">المصحف الشريف</h2>
+                            <p class="text-[10px] text-emerald-200">عرض كامل مع تفاصيل التلاوة والتفسير</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <select id="surahSelect" onchange="loadSurah()" class="bg-emerald-800 text-white text-xs p-3 rounded-xl outline-none border border-emerald-700 flex-1">
+                            <!-- Options filled dynamically -->
+                        </select>
+                        <input type="text" placeholder="بحث في الآيات..." class="bg-emerald-800/50 text-white text-xs p-3 rounded-xl outline-none border border-emerald-700 placeholder-emerald-300">
+                    </div>
+                </div>
+                
+                <div id="quranView" class="flex-1 overflow-y-auto p-8 md:p-16 quran-container bg-[#fffef9] text-center">
+                    <!-- Quran Text Injection -->
+                    <div class="text-gray-400 italic">اختر سورة للبدء في القراءة...</div>
+                </div>
+
+                <div class="p-6 bg-emerald-50 border-t border-emerald-100 flex justify-center gap-4">
+                    <button class="bg-emerald-700 text-white px-6 py-2 rounded-full text-xs font-bold hover:bg-emerald-800 transition">تسميع صوتي</button>
+                    <button class="bg-amber-500 text-emerald-950 px-6 py-2 rounded-full text-xs font-bold hover:bg-amber-600 transition">تحليل الإعجاز</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Library Tab (Placeholder from previous version but enhanced) -->
+        <section id="library" class="tab-content animate-fade">
+             <!-- [Similar to previous version but with AI Mistral connectivity placeholder] -->
+             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="libraryGrid"></div>
+        </section>
+
+        <!-- Prayers & Daily Life Tab -->
+        <section id="prayers" class="tab-content animate-fade">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-8 rounded-3xl shadow-lg border border-emerald-50">
+                    <h3 class="font-bold text-emerald-900 mb-4 flex items-center gap-2">☀️ أذكار الصباح</h3>
+                    <div class="space-y-3 text-sm text-gray-600">
+                        <div class="p-3 bg-emerald-50 rounded-xl cursor-pointer hover:bg-emerald-100 transition">"أصبحنا وأصبح الملك لله والحمد لله"</div>
+                        <div class="p-3 bg-emerald-50 rounded-xl cursor-pointer hover:bg-emerald-100 transition">آية الكرسي</div>
+                        <div class="p-3 bg-emerald-50 rounded-xl cursor-pointer hover:bg-emerald-100 transition">المعوذات (3 مرات)</div>
+                    </div>
+                </div>
+                <div class="bg-white p-8 rounded-3xl shadow-lg border border-emerald-50">
+                    <h3 class="font-bold text-emerald-900 mb-4 flex items-center gap-2">🌙 أذكار المساء</h3>
+                    <div class="space-y-3 text-sm text-gray-600">
+                        <div class="p-3 bg-blue-50 rounded-xl cursor-pointer hover:bg-blue-100 transition">"أمسينا وأمسى الملك لله"</div>
+                        <div class="p-3 bg-blue-50 rounded-xl cursor-pointer hover:bg-blue-100 transition">سيد الاستغفار</div>
+                    </div>
+                </div>
+                <div class="bg-white p-8 rounded-3xl shadow-lg border border-emerald-50">
+                    <h3 class="font-bold text-emerald-900 mb-4 flex items-center gap-2">📿 تسابيح رقمية</h3>
+                    <div class="text-center py-6">
+                        <div id="tasbihCount" class="text-5xl font-black text-emerald-700 mb-4">0</div>
+                        <button onclick="incrementTasbih()" class="w-24 h-24 bg-emerald-600 text-white rounded-full shadow-xl hover:bg-emerald-700 active:scale-90 transition-all font-bold">سبّح</button>
+                        <button onclick="resetTasbih()" class="block mx-auto mt-4 text-[10px] text-gray-400 hover:text-red-500">تصفير العداد</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Configuration
+        const apiKeyMistral = ""; // مفتاح Mistral المقدم
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ana-muslim-pro';
+        
+        // Mock Quran Data (Will be populated by quran.json)
+        let fullQuranData = null;
+
+        async function fetchQuranData() {
+            // ملاحظة: في بيئة التشغيل الحقيقية، نقوم بتحميل الملف المرفوع
+            // هنا سنقوم بمحاكاة التحميل من الهيكل الذي قدمته
+            try {
+                const response = await fetch('quran.json');
+                fullQuranData = await response.json();
+                populateSurahList();
+            } catch (e) {
+                console.error("خطأ في تحميل المصحف", e);
+                // محاكاة بيانات في حال فشل التحميل المباشر للملف
+                fullQuranData = { surahs: [{ number: 1, name: "الفاتحة", verses: [{text: "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ"}] }] };
+                populateSurahList();
+            }
+        }
+
+        function populateSurahList() {
+            const select = document.getElementById('surahSelect');
+            if (!fullQuranData) return;
+            
+            select.innerHTML = fullQuranData.surahs.map(s => 
+                `<option value="${s.number}">${s.number}. ${s.name}</option>`
+            ).join('');
+            loadSurah(1);
+        }
+
+        function loadSurah(num) {
+            const surahNum = num || document.getElementById('surahSelect').value;
+            const surah = fullQuranData.surahs.find(s => s.number == surahNum);
+            const view = document.getElementById('quranView');
+            
+            if (surah) {
+                let html = `<h2 class="text-3xl font-bold text-emerald-900 mb-8 quran-font">﴿ ${surah.name} ﴾</h2>`;
+                if (surah.number != 1 && surah.number != 9) {
+                    html += `<div class="quran-font text-emerald-700 mb-8">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>`;
+                }
+                
+                html += `<div class="quran-font leading-[4rem] text-gray-800">`;
+                surah.verses.forEach(v => {
+                    html += `${v.text} <span class="inline-flex items-center justify-center w-10 h-10 border-2 border-amber-300 rounded-full text-xs font-bold mx-2 text-emerald-800">${v.number}</span> `;
+                });
+                html += `</div>`;
+                view.innerHTML = html;
+                view.scrollTop = 0;
+            }
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
+            event.target.classList.add('nav-active');
+        }
+
+        // Clock Logic
+        function updateClock() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            document.getElementById('currentTime').innerText = now.toLocaleDateString('ar-EG', options);
+        }
+
+        // Tasbih Logic
+        let count = 0;
+        function incrementTasbih() {
+            count++;
+            document.getElementById('tasbihCount').innerText = count;
+            if (count % 33 === 0) {
+                // هزة خفيفة أو تنبيه بسيط عند اكتمال دورة
+                document.getElementById('tasbihCount').classList.add('text-amber-500');
+                setTimeout(() => document.getElementById('tasbihCount').classList.remove('text-amber-500'), 500);
+            }
+        }
+        function resetTasbih() {
+            count = 0;
+            document.getElementById('tasbihCount').innerText = count;
+        }
+
+        // Render Library (From previous logic)
+        function renderLibrary() {
+            const libraryData = [
+                { title: "معجزة القرآن", author: "الشيخ الشعراوي", color: "from-blue-500 to-blue-700", icon: "📖" },
+                { title: "عبقرية محمد", author: "عباس العقاد", color: "from-amber-500 to-amber-700", icon: "✨" },
+                { title: "علم نفس قرآني", author: "د. مصطفى محمود", color: "from-purple-500 to-purple-700", icon: "🧠" },
+                { title: "عقيدة المسلم", author: "محمد الغزالي", color: "from-emerald-500 to-emerald-700", icon: "🛡️" }
+            ];
+            const grid = document.getElementById('libraryGrid');
+            grid.innerHTML = libraryData.map(book => `
+                <div class="bg-white rounded-3xl overflow-hidden shadow-md hover:-translate-y-2 transition-all cursor-pointer group border border-gray-100">
+                    <div class="h-32 bg-gradient-to-br ${book.color} flex items-center justify-center text-4xl">
+                        ${book.icon}
+                    </div>
+                    <div class="p-5 text-center">
+                        <h4 class="font-bold text-gray-800 text-sm mb-1">${book.title}</h4>
+                        <p class="text-[10px] text-gray-400 mb-4">${book.author}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Init
+        window.onload = () => {
+            updateClock();
+            setInterval(updateClock, 60000);
+            fetchQuranData();
+            renderLibrary();
+        };
+    </script>
+</body>
+</html>

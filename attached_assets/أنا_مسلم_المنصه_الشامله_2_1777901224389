@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أنا مسلم - المحراب الرقمي الشامل</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;500;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --islamic-green: #065f46;
+            --gold: #d4af37;
+            --soft-bg: #fdfcf8;
+        }
+        body { font-family: 'Tajawal', sans-serif; background-color: var(--soft-bg); }
+        .quran-font { font-family: 'Amiri', serif; font-size: 1.8rem; line-height: 3.5rem; }
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .nav-active { border-bottom: 3px solid var(--gold); color: var(--islamic-green); }
+        .quran-container::-webkit-scrollbar { width: 6px; }
+        .quran-container::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade { animation: fadeIn 0.5s ease-in-out; }
+        
+        /* White Page Modal Styles */
+        #memorization-modal {
+            transition: all 0.5s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #memorization-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .listening-pulse {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .word-correct { color: #047857; font-weight: bold; }
+        .word-wrong { color: #ef4444; text-decoration: line-through; margin-left: 5px; }
+        .word-correction { color: #d97706; font-weight: bold; }
+    </style>
+</head>
+<body class="text-gray-900 overflow-x-hidden">
+
+    <!-- Navigation Bar -->
+    <nav class="sticky top-0 z-40 glass-morphism shadow-md px-6 py-3">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-700 text-white p-2 rounded-xl shadow-lg">🌙</div>
+                <h1 class="text-2xl font-black text-emerald-900 tracking-tighter">أنا مسلم <span class="text-amber-500 text-sm">V3.0</span></h1>
+            </div>
+            <div class="hidden lg:flex gap-6 text-sm font-bold text-gray-500" id="mainNav">
+                <button onclick="switchTab('home')" class="nav-btn nav-active">الرئيسية</button>
+                <button onclick="switchTab('quran')" class="nav-btn">المصحف</button>
+                <button onclick="switchTab('wird')" class="nav-btn">الورد والتسميع الذكي</button>
+                <button onclick="switchTab('library')" class="nav-btn">المكتبة</button>
+                <button onclick="switchTab('prayers')" class="nav-btn">الأذكار</button>
+            </div>
+            <div id="currentTime" class="text-xs font-bold text-emerald-800 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 hidden md:block">
+                جاري التحميل...
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8">
+
+        <!-- Home Tab -->
+        <section id="home" class="tab-content active animate-fade">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 bg-gradient-to-br from-emerald-800 to-emerald-950 rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl">
+                    <div class="relative z-10">
+                        <span class="bg-emerald-500/30 text-emerald-100 px-4 py-1 rounded-full text-xs font-bold">آية اليوم وإعجازها</span>
+                        <h2 class="quran-font mt-6 mb-4 text-3xl leading-relaxed">"إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ"</h2>
+                        <p class="text-emerald-200 text-sm leading-relaxed mb-8 max-w-xl">
+                            يقول الشيخ الشعراوي: القرآن لا يعطيك أسراره إلا إذا أقبلت عليه بقلبٍ سليم...
+                        </p>
+                        <div class="flex gap-4">
+                            <button onclick="switchTab('wird')" class="bg-amber-500 hover:bg-amber-600 text-emerald-950 px-6 py-3 rounded-2xl font-bold transition shadow-lg">ابدأ وردك اليومي</button>
+                        </div>
+                    </div>
+                    <div class="absolute -bottom-10 -left-10 text-[15rem] opacity-5 select-none">☪</div>
+                </div>
+                <div class="bg-white rounded-[3rem] p-8 shadow-xl border border-gray-100 flex flex-col justify-center items-center text-center">
+                    <h3 class="font-black text-emerald-900 mb-2">إنجاز الحفظ</h3>
+                    <div class="w-32 h-32 rounded-full border-8 border-emerald-100 border-t-emerald-500 flex items-center justify-center text-3xl font-black text-emerald-700 mb-4">
+                        %0
+                    </div>
+                    <p class="text-sm text-gray-500">قم بتحديد وردك اليومي وبدء التسميع لرفع نسبة إنجازك.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quran Tab -->
+        <section id="quran" class="tab-content animate-fade">
+             <!-- [محتوى المصحف العادي كما في النسخة السابقة] -->
+             <div class="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-emerald-50 flex flex-col h-[700px]">
+                <div class="bg-emerald-900 p-6 text-white flex justify-between items-center gap-4">
+                    <h2 class="font-bold">المصحف الشريف</h2>
+                    <select id="surahSelectQuran" onchange="loadQuranSurah()" class="bg-emerald-800 text-white text-xs p-3 rounded-xl outline-none border border-emerald-700 w-64">
+                    </select>
+                </div>
+                <div id="quranView" class="flex-1 overflow-y-auto p-8 md:p-16 quran-container bg-[#fffef9] text-center text-3xl leading-[4rem]">
+                    جاري تحميل المصحف...
+                </div>
+            </div>
+        </section>
+
+        <!-- Daily Wird & Memorization Tab -->
+        <section id="wird" class="tab-content animate-fade">
+            <div class="bg-white rounded-[2.5rem] shadow-xl p-8 border border-emerald-50 max-w-4xl mx-auto">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-black text-emerald-900 mb-4">الورد اليومي والتسميع</h2>
+                    <p class="text-gray-500">حدد السورة والآيات التي تريد حفظها، وسيقوم النظام بالاستماع لتلاوتك وتصحيحها فورياً.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">السورة</label>
+                        <select id="wirdSurah" onchange="updateWirdAyahs()" class="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-emerald-500 transition">
+                            <!-- Options -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">من آية</label>
+                        <select id="wirdStartAyah" class="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-emerald-500 transition">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">إلى آية</label>
+                        <select id="wirdEndAyah" class="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-emerald-500 transition">
+                        </select>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button onclick="startMemorizationSession()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-bold py-4 px-12 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
+                        🎙️ بدء التسميع (الصفحة البيضاء)
+                    </button>
+                    <p class="text-xs text-red-500 mt-4">* يرجى السماح للمتصفح باستخدام الميكروفون عند الطلب</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Library & Prayers (Placeholders from previous) -->
+        <section id="library" class="tab-content animate-fade"><div class="p-8 text-center text-gray-500">محتوى المكتبة والتفاسير (مفعل في النسخة السابقة)</div></section>
+        <section id="prayers" class="tab-content animate-fade"><div class="p-8 text-center text-gray-500">محتوى الأذكار والمواقيت (مفعل في النسخة السابقة)</div></section>
+
+    </main>
+
+    <!-- THE WHITE PAGE: Memorization Modal (Fullscreen) -->
+    <div id="memorization-modal" class="fixed inset-0 bg-[#fdfcf8] z-50 flex flex-col justify-between overflow-y-auto">
+        <!-- Header -->
+        <div class="p-6 md:p-10 flex justify-between items-center border-b border-gray-100 bg-white sticky top-0 z-10 shadow-sm">
+            <div>
+                <h1 class="text-3xl font-black text-emerald-900 quran-font">المحراب - تسميع الورد</h1>
+                <p id="recite-title" class="text-gray-500 text-sm font-bold mt-2">سورة الفاتحة (1 - 7)</p>
+            </div>
+            <button onclick="stopMemorizationSession()" class="bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2 rounded-full font-bold transition">
+                إنهاء الجلسة ✕
+            </button>
+        </div>
+
+        <!-- Main Display Area (The White Page magic happens here) -->
+        <div class="flex-1 flex flex-col items-center justify-center p-8 md:p-20 text-center max-w-5xl mx-auto w-full">
+            
+            <div id="target-ayah-display" class="quran-font text-5xl md:text-6xl text-gray-300 leading-loose mb-12 select-none filter blur-sm transition-all duration-300 hover:blur-none hover:text-gray-400 cursor-pointer" title="اضغط أو مرر الماوس لإظهار الآية الأصلية">
+                (النص الأصلي للآية سيظهر هنا إذا أردت التلميح)
+            </div>
+
+            <div id="recitation-result" class="quran-font text-5xl md:text-6xl leading-loose text-gray-900 min-h-[150px] w-full bg-white p-10 rounded-3xl shadow-inner border border-gray-100 relative">
+                <span class="text-gray-400 text-2xl italic">... اقرأ الآية ليظهر ترتيلك هنا ...</span>
+            </div>
+
+            <!-- Controls -->
+            <div class="mt-16 flex flex-col items-center gap-6">
+                <div id="mic-status" class="text-emerald-600 font-bold mb-4 h-6 text-xl">
+                    انقر على الميكروفون للبدء...
+                </div>
+                
+                <button id="mic-btn" onclick="toggleListening()" class="w-28 h-28 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full flex items-center justify-center shadow-2xl transition-all transform hover:scale-105 active:scale-95 text-5xl">
+                    🎤
+                </button>
+
+                <div class="flex gap-4 mt-8">
+                    <button onclick="checkRecitation()" class="bg-amber-500 hover:bg-amber-600 text-emerald-950 px-8 py-4 rounded-2xl font-black text-xl transition shadow-lg hidden" id="check-btn">
+                        تأكيد التسميع وفحص الأخطاء ✅
+                    </button>
+                    <button onclick="nextAyah()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-xl transition shadow-lg hidden" id="next-btn">
+                        الآية التالية ➡️
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        const apiKeyMistral = ""; // Mistral API Key (مجهز للمستقبل للربط مع التفسير العميق للأخطاء)
+        
+        // Navigation Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
+            event.target.classList.add('nav-active');
+        }
+
+        // ==========================================
+        // Quran Data Loading & Normalization
+        // ==========================================
+        let fullQuranData = null;
+
+        async function initQuran() {
+            try {
+                // محاكاة جلب بيانات quran.json التي أرفقتها مسبقاً
+                const response = await fetch('quran.json');
+                if(!response.ok) throw new Error("ملف المصحف غير موجود، سيتم استخدام بيانات تجريبية.");
+                fullQuranData = await response.json();
+            } catch (e) {
+                console.warn(e.message);
+                // بيانات تجريبية (Fallback) بناءً على الهيكل المعروف للمصحف
+                fullQuranData = {
+                    surahs: [
+                        { number: 1, name: "الفاتحة", verses: [{number: 1, text: "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ"}, {number: 2, text: "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ"}, {number: 3, text: "الرَّحْمَنِ الرَّحِيمِ"}] },
+                        { number: 112, name: "الإخلاص", verses: [{number: 1, text: "قُلْ هُوَ اللَّهُ أَحَدٌ"}, {number: 2, text: "اللَّهُ الصَّمَدُ"}, {number: 3, text: "لَمْ يَلِدْ وَلَمْ يُولَدْ"}, {number: 4, text: "وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ"}] }
+                    ]
+                };
+            }
+            populateDropdowns();
+            loadQuranSurah(); // Load regular Quran view
+        }
+
+        // Normalizes Arabic text by removing Tashkeel and normalizing Alifs/Ta-Marbuta for robust STT comparison
+        function normalizeArabicText(text) {
+            if (!text) return "";
+            return text
+                .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '') // إزالة التشكيل وعلامات الوقف
+                .replace(/[أإآ]/g, 'ا') // توحيد الألف
+                .replace(/ة/g, 'ه') // توحيد التاء المربوطة والهاء (شائع في النطق)
+                .replace(/ى/g, 'ي') // توحيد الألف المقصورة والياء
+                .trim();
+        }
+
+        // ==========================================
+        // Wird Configuration Logic
+        // ==========================================
+        function populateDropdowns() {
+            if (!fullQuranData) return;
+            const surahSelect = document.getElementById('wirdSurah');
+            const quranSelect = document.getElementById('surahSelectQuran');
+            
+            const options = fullQuranData.surahs.map(s => `<option value="${s.number}">${s.number}. ${s.name}</option>`).join('');
+            surahSelect.innerHTML = options;
+            quranSelect.innerHTML = options;
+            
+            updateWirdAyahs();
+        }
+
+        function updateWirdAyahs() {
+            const surahNum = document.getElementById('wirdSurah').value;
+            const surah = fullQuranData.surahs.find(s => s.number == surahNum);
+            if (!surah) return;
+
+            const ayahOptions = surah.verses.map(v => `<option value="${v.number}">${v.number}</option>`).join('');
+            
+            const startSelect = document.getElementById('wirdStartAyah');
+            const endSelect = document.getElementById('wirdEndAyah');
+            
+            startSelect.innerHTML = ayahOptions;
+            endSelect.innerHTML = ayahOptions;
+            endSelect.value = surah.verses[surah.verses.length - 1].number; // Default to last ayah
+        }
+
+        function loadQuranSurah() {
+            const surahNum = document.getElementById('surahSelectQuran').value;
+            const surah = fullQuranData.surahs.find(s => s.number == surahNum);
+            const view = document.getElementById('quranView');
+            
+            if (surah) {
+                let html = `<h2 class="text-4xl font-bold text-emerald-900 mb-8 quran-font">﴿ سُورَةُ ${surah.name} ﴾</h2>`;
+                if (surah.number != 1 && surah.number != 9) {
+                    html += `<div class="quran-font text-emerald-700 mb-8">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>`;
+                }
+                html += `<div class="quran-font text-gray-800 text-justify inline-block" dir="rtl">`;
+                surah.verses.forEach(v => {
+                    html += `${v.text} <span class="inline-flex items-center justify-center w-12 h-12 border-2 border-amber-300 rounded-full text-lg font-bold mx-2 text-emerald-800 bg-emerald-50">${v.number}</span> `;
+                });
+                html += `</div>`;
+                view.innerHTML = html;
+            }
+        }
+
+        // ==========================================
+        // Smart Memorization & STT Logic
+        // ==========================================
+        let recognition = null;
+        let isListening = false;
+        let finalTranscript = '';
+        
+        let sessionWird = [];
+        let currentAyahIndex = 0;
+
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("نعتذر، متصفحك لا يدعم ميزة التعرف على الصوت. نوصي باستخدام متصفح Google Chrome.");
+                return false;
+            }
+            
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ar-SA'; // اللغة العربية الفصحى
+            recognition.continuous = true;
+            recognition.interimResults = true; // لنتائج فورية
+
+            recognition.onstart = function() {
+                isListening = true;
+                document.getElementById('mic-btn').classList.add('listening-pulse', 'bg-red-600');
+                document.getElementById('mic-btn').classList.remove('bg-emerald-600');
+                document.getElementById('mic-status').innerText = "جاري الاستماع... (اقرأ الآية)";
+                document.getElementById('check-btn').classList.remove('hidden');
+                document.getElementById('next-btn').classList.add('hidden');
+                finalTranscript = '';
+                document.getElementById('recitation-result').innerHTML = '';
+            };
+
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                
+                // تحديث الواجهة فورياً
+                document.getElementById('recitation-result').innerHTML = 
+                    `<span class="text-gray-900">${finalTranscript}</span>` + 
+                    `<span class="text-gray-400 italic">${interimTranscript}</span>`;
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Speech recognition error", event.error);
+                document.getElementById('mic-status').innerText = "حدث خطأ: " + event.error;
+                stopListening();
+            };
+
+            recognition.onend = function() {
+                if(isListening) {
+                    // إذا توقف المتصفح تلقائياً (timeout)، نعيد تشغيله لو أردنا، 
+                    // لكن هنا سننتظر المستخدم يضغط زر التأكيد
+                    isListening = false;
+                    document.getElementById('mic-btn').classList.remove('listening-pulse', 'bg-red-600');
+                    document.getElementById('mic-btn').classList.add('bg-emerald-600');
+                    document.getElementById('mic-status').innerText = "تم إيقاف الاستماع. اضغط للتأكيد.";
+                }
+            };
+            
+            return true;
+        }
+
+        function toggleListening() {
+            if (!recognition && !initSpeechRecognition()) return;
+            
+            if (isListening) {
+                stopListening();
+            } else {
+                try { recognition.start(); } catch(e) { console.log("Already started"); }
+            }
+        }
+
+        function stopListening() {
+            if(recognition) {
+                recognition.stop();
+                isListening = false;
+                document.getElementById('mic-btn').classList.remove('listening-pulse', 'bg-red-600');
+                document.getElementById('mic-btn').classList.add('bg-emerald-600');
+                document.getElementById('mic-status').innerText = "اضغط الميكروفون للتحدث من جديد، أو اضغط زر التأكيد.";
+            }
+        }
+
+        function startMemorizationSession() {
+            const surahNum = document.getElementById('wirdSurah').value;
+            const startAyah = parseInt(document.getElementById('wirdStartAyah').value);
+            const endAyah = parseInt(document.getElementById('wirdEndAyah').value);
+            
+            if (startAyah > endAyah) {
+                alert("تأكد أن آية البداية تسبق أو تساوي آية النهاية.");
+                return;
+            }
+
+            const surah = fullQuranData.surahs.find(s => s.number == surahNum);
+            sessionWird = surah.verses.filter(v => v.number >= startAyah && v.number <= endAyah);
+            currentAyahIndex = 0;
+
+            document.getElementById('recite-title').innerText = `سورة ${surah.name} (الآية ${startAyah} - ${endAyah})`;
+            document.getElementById('memorization-modal').classList.add('active');
+            
+            if(!recognition) initSpeechRecognition();
+            loadAyahForRecitation();
+        }
+
+        function stopMemorizationSession() {
+            stopListening();
+            document.getElementById('memorization-modal').classList.remove('active');
+        }
+
+        function loadAyahForRecitation() {
+            if (currentAyahIndex >= sessionWird.length) {
+                document.getElementById('target-ayah-display').innerHTML = "🎉 ما شاء الله! لقد أتممت الورد.";
+                document.getElementById('target-ayah-display').classList.remove('blur-sm');
+                document.getElementById('recitation-result').innerHTML = "";
+                document.getElementById('mic-btn').classList.add('hidden');
+                document.getElementById('check-btn').classList.add('hidden');
+                document.getElementById('next-btn').classList.add('hidden');
+                return;
+            }
+
+            const ayah = sessionWird[currentAyahIndex];
+            document.getElementById('target-ayah-display').innerHTML = `﴿ ${ayah.text} ﴾`;
+            document.getElementById('target-ayah-display').classList.add('blur-sm');
+            document.getElementById('recitation-result').innerHTML = '<span class="text-gray-400 text-2xl italic">... اقرأ الآية ليظهر ترتيلك هنا ...</span>';
+            
+            document.getElementById('mic-btn').classList.remove('hidden');
+            document.getElementById('check-btn').classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('mic-status').innerText = `الآية رقم ${ayah.number}: انقر الميكروفون للبدء`;
+            
+            finalTranscript = '';
+        }
+
+        // ==========================================
+        // The Core Recitation Matching Algorithm
+        // ==========================================
+        function checkRecitation() {
+            stopListening();
+            
+            const targetAyahText = sessionWird[currentAyahIndex].text;
+            const spokenText = finalTranscript.trim();
+            
+            if (!spokenText) {
+                alert("لم يتم التقاط أي صوت، يرجى المحاولة مرة أخرى.");
+                return;
+            }
+
+            // تحضير المصفوفات للمقارنة (تنظيف التشكيل للمطابقة المنطقية)
+            const targetWords = targetAyahText.split(' ');
+            const spokenWords = spokenText.split(' ');
+            
+            let resultHTML = '';
+            let targetPointer = 0;
+            let spokenPointer = 0;
+
+            // خوارزمية مبسطة جداً لتتبع الأخطاء (Diffing)
+            while (targetPointer < targetWords.length || spokenPointer < spokenWords.length) {
+                let tWordOrig = targetWords[targetPointer] || "";
+                let sWordOrig = spokenWords[spokenPointer] || "";
+                
+                let tWordNorm = normalizeArabicText(tWordOrig);
+                let sWordNorm = normalizeArabicText(sWordOrig);
+
+                if (tWordNorm === sWordNorm && tWordNorm !== "") {
+                    // الكلمة صحيحة تماماً
+                    resultHTML += `<span class="word-correct">${tWordOrig}</span> `;
+                    targetPointer++;
+                    spokenPointer++;
+                } else {
+                    // محاولة البحث للأمام قليلاً للتعامل مع الكلمات الزائدة أو الناقصة
+                    let matchFound = false;
+                    
+                    // هل نسي كلمة؟ (نبحث في المستقبل عن كلمته المنطوقة)
+                    for (let i = 1; i <= 2 && targetPointer + i < targetWords.length; i++) {
+                        if (normalizeArabicText(targetWords[targetPointer + i]) === sWordNorm) {
+                            // نسي الكلمات التي تسبقها
+                            for(let j=0; j<i; j++) {
+                                resultHTML += `<span class="word-correction" title="كلمة سقطت من الحفظ">${targetWords[targetPointer + j]}</span> `;
+                            }
+                            targetPointer += i;
+                            matchFound = true;
+                            break;
+                        }
+                    }
+
+                    if (!matchFound) {
+                        // هل زاد كلمة؟ (الكلمة المنطوقة خطأ تماماً والكلمة الهدف موجودة بعدها)
+                        if (sWordNorm !== "" && tWordNorm !== "") {
+                           resultHTML += `<span class="word-wrong" title="كلمة زائدة أو خاطئة">${sWordOrig}</span> `;
+                           resultHTML += `<span class="word-correction" title="التصحيح">${tWordOrig}</span> `;
+                           targetPointer++;
+                           spokenPointer++;
+                        } else if (sWordNorm === "" && tWordNorm !== "") {
+                            // انتهى الكلام المنطوق وبقيت كلمات في الآية
+                            resultHTML += `<span class="word-correction" title="كلمة سقطت">${tWordOrig}</span> `;
+                            targetPointer++;
+                        } else if (sWordNorm !== "" && tWordNorm === "") {
+                            // كلمات زائدة في نهاية النطق
+                            resultHTML += `<span class="word-wrong" title="كلمة زائدة">${sWordOrig}</span> `;
+                            spokenPointer++;
+                        }
+                    }
+                }
+            }
+
+            document.getElementById('recitation-result').innerHTML = resultHTML;
+            document.getElementById('target-ayah-display').classList.remove('blur-sm'); // إظهار الآية الأصلية بوضوح
+            
+            document.getElementById('mic-btn').classList.add('hidden');
+            document.getElementById('check-btn').classList.add('hidden');
+            document.getElementById('next-btn').classList.remove('hidden');
+            document.getElementById('mic-status').innerText = "تم الفحص. اللون الأخضر صحيح، والبرتقالي تصحيح لما سقط أو أخطأت به.";
+        }
+
+        function nextAyah() {
+            currentAyahIndex++;
+            loadAyahForRecitation();
+        }
+
+        // Init Clock and Data
+        window.onload = () => {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('currentTime').innerText = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            }, 1000);
+            initQuran();
+        };
+    </script>
+</body>
+</html>
