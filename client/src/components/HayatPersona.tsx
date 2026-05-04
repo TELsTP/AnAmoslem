@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, X, Mic, MicOff, Sparkles } from "lucide-react";
+import { Send, X, Mic, MicOff, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { getOrCreateSessionId, isArchitectSession, detectHandshake, activateArchitectMode } from "../lib/session";
 import { saveMessage, loadConversation } from "../lib/supabase";
 import type { ConversationMessage } from "../lib/supabase";
@@ -26,6 +26,8 @@ export default function HayatPersona() {
   const [pulse, setPulse] = useState(false);
   const [position, setPosition] = useState({ bottom: 24, right: 24 });
   const [promptSentAt, setPromptSentAt] = useState<string | null>(null);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [speaking, setSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const sessionId = getOrCreateSessionId();
@@ -46,6 +48,13 @@ export default function HayatPersona() {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isOpen]);
+
+  useEffect(() => {
+    if (!voiceEnabled && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+    }
+  }, [voiceEnabled]);
 
   useEffect(() => {
     if (!isOpen || messages.length > 1) return;
@@ -114,6 +123,19 @@ export default function HayatPersona() {
     recognition.start();
     recognitionRef.current = recognition;
     setIsListening(true);
+  };
+
+  const speakText = (text: string) => {
+    if (!voiceEnabled || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ar-SA";
+    utterance.rate = 1.02;
+    utterance.pitch = 1.04;
+    utterance.onstart = () => setSpeaking(true);
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(utterance);
   };
 
   const stopListening = () => {
@@ -300,6 +322,13 @@ export default function HayatPersona() {
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button
+                onClick={() => setVoiceEnabled((v) => !v)}
+                style={{ background: "none", border: "none", color: "rgba(134,239,172,0.7)", cursor: "pointer" }}
+                title={voiceEnabled ? "إيقاف الصوت" : "تشغيل الصوت"}
+              >
+                {voiceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              </button>
+              <button
                 onClick={() => setIsMinimized(true)}
                 style={{ background: "none", border: "none", color: "rgba(134,239,172,0.5)", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
               >
@@ -353,6 +382,7 @@ export default function HayatPersona() {
                     textAlign: "right",
                   }}
                 >
+                  {!msg.role && null}
                   {msg.content || (
                     <span style={{ color: "rgba(134,239,172,0.4)", fontStyle: "italic" }}>
                       تفكر...
@@ -379,6 +409,42 @@ export default function HayatPersona() {
               }}
             >
               {interimText || "🎙️ جاري الاستماع..."}
+            </div>
+          )}
+
+          {messages[messages.length - 1]?.role === "assistant" && (
+            <div
+              style={{
+                margin: "0 12px 8px",
+                padding: "8px 10px",
+                borderRadius: 10,
+                background: "rgba(74,222,128,0.06)",
+                border: "1px solid rgba(74,222,128,0.12)",
+                color: "#d1fae5",
+                fontSize: 11,
+                direction: "rtl",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <span>الرد ظاهر هنا ومتاح قراءته صوتياً.</span>
+              <button
+                onClick={() => speakText(messages[messages.length - 1].content)}
+                disabled={!voiceEnabled || speaking}
+                style={{
+                  border: "none",
+                  borderRadius: 999,
+                  padding: "4px 10px",
+                  background: speaking ? "rgba(74,222,128,0.25)" : "rgba(74,222,128,0.12)",
+                  color: "#4ade80",
+                  cursor: "pointer",
+                  fontSize: 11,
+                }}
+              >
+                {speaking ? "يتكلم الآن" : "استمع"}
+              </button>
             </div>
           )}
 

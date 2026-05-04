@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, Mic, MicOff, Brain, Leaf, Heart, Sparkles, RotateCcw } from "lucide-react";
+import { Send, Mic, MicOff, Brain, Leaf, Heart, Sparkles, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   getOrCreateSessionId,
@@ -17,6 +17,16 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+}
+
+function speakArabic(text: string, persona: Persona) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ar-SA";
+  utterance.rate = persona === "hayat" ? 1.02 : 0.98;
+  utterance.pitch = persona === "noura" ? 0.92 : persona === "companion" ? 1 : 1.06;
+  window.speechSynthesis.speak(utterance);
 }
 
 const PERSONA_CONFIG = {
@@ -84,6 +94,8 @@ export default function CompanionPage() {
   const [interimText, setInterimText] = useState("");
   const [isArchitect, setIsArchitect] = useState(false);
   const [architectUnlocked, setArchitectUnlocked] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [loadedPersonas, setLoadedPersonas] = useState<Set<Persona>>(new Set());
   const [suggestionSent, setSuggestionSent] = useState<Record<Persona, string | null>>({
     noura: null,
@@ -144,6 +156,21 @@ export default function CompanionPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!voiceEnabled) window.speechSynthesis?.cancel?.();
+  }, [voiceEnabled]);
+
+  const speakMessage = (message: Message) => {
+    if (message.role !== "assistant") return;
+    if (!voiceEnabled) return;
+    setSpeakingId(message.id);
+    speakArabic(message.content, activePersona);
+    const clear = () => setSpeakingId((curr) => (curr === message.id ? null : curr));
+    setTimeout(clear, Math.max(1200, message.content.length * 35));
+    window.speechSynthesis.onend = clear;
+    window.speechSynthesis.oncancel = clear;
+  };
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -408,6 +435,23 @@ export default function CompanionPage() {
         </div>
       </header>
 
+      <div className="container pt-3">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card/70 px-4 py-3">
+          <div className="text-sm text-muted-foreground" dir="rtl">
+            محادثة صوتية: النص يظهر على الشاشة، ويمكنك سماع رد المساعد مباشرة.
+          </div>
+          <button
+            onClick={() => setVoiceEnabled((v) => !v)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm border transition ${
+              voiceEnabled ? "bg-primary text-white border-primary" : "bg-transparent text-muted-foreground border-border"
+            }`}
+          >
+            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            {voiceEnabled ? "الصوت مفعل" : "الصوت متوقف"}
+          </button>
+        </div>
+      </div>
+
       <div className="container py-3 flex gap-2 justify-center">
         {(["companion", "noura", "hayat"] as Persona[]).map((p) => {
           const cfg = PERSONA_CONFIG[p];
@@ -431,7 +475,14 @@ export default function CompanionPage() {
       <main className="flex-1 container py-2 flex flex-col" style={{ maxHeight: "calc(100vh - 160px)" }}>
         <div className="flex-1 overflow-y-auto mb-3 space-y-4 pr-1">
           {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} personaConfig={persona} />
+            <ChatMessage
+              key={message.id}
+              message={message}
+              personaConfig={persona}
+              onSpeak={speakMessage}
+              speaking={speakingId === message.id}
+              voiceEnabled={voiceEnabled}
+            />
           ))}
           {isLoading && messages[messages.length - 1]?.content === "" && (
             <LoadingIndicator personaConfig={persona} />
@@ -530,9 +581,15 @@ export default function CompanionPage() {
 function ChatMessage({
   message,
   personaConfig,
+  onSpeak,
+  speaking,
+  voiceEnabled,
 }: {
   message: Message;
   personaConfig: (typeof PERSONA_CONFIG)[Persona];
+  onSpeak: (message: Message) => void;
+  speaking: boolean;
+  voiceEnabled: boolean;
 }) {
   const isUser = message.role === "user";
   if (!message.content && !isUser) return null;
@@ -556,6 +613,17 @@ function ChatMessage({
         }`}
         dir="rtl"
       >
+        {!isUser && (
+          <button
+            onClick={() => onSpeak(message)}
+            className={`mb-2 inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${
+              speaking ? "bg-primary text-white border-primary" : "bg-white/70 text-muted-foreground border-border"
+            }`}
+            disabled={!voiceEnabled}
+          >
+            {speaking ? "يتكلم الآن" : "استمع"}
+          </button>
+        )}
         {message.content || (
           <span className="text-muted-foreground italic">جاري التفكير...</span>
         )}
