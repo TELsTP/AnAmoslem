@@ -19,6 +19,28 @@ interface Message {
   content: string;
 }
 
+let cachedVoices: SpeechSynthesisVoice[] = [];
+let voicesReady = false;
+
+function loadVoices() {
+  if (!("speechSynthesis" in window)) return [];
+  if (voicesReady && cachedVoices.length) return cachedVoices;
+  cachedVoices = window.speechSynthesis.getVoices() || [];
+  voicesReady = true;
+  return cachedVoices;
+}
+
+function pickVoice(persona: Persona) {
+  const voices = loadVoices();
+  const arabic = voices.filter((v) => /ar/i.test(v.lang) || /Arabic/i.test(v.name));
+  const femaleish = arabic.filter((v) => /female|woman|zira|sara|sabrina|maria|noura|layla|leila|huda|amina|fatima/i.test(v.name));
+  const maleish = arabic.filter((v) => /male|man|adam|hussein|mohamed|mohammad|ahmed|osama|khaled/i.test(v.name));
+
+  if (persona === "noura") return femaleish[0] || arabic[0] || voices[0] || null;
+  if (persona === "hayat") return femaleish[1] || femaleish[0] || arabic[1] || arabic[0] || voices[0] || null;
+  return maleish[0] || arabic.find((v) => !femaleish.includes(v)) || arabic[0] || voices[0] || null;
+}
+
 function speakArabic(text: string, persona: Persona) {
   if (!("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
@@ -27,6 +49,8 @@ function speakArabic(text: string, persona: Persona) {
   utterance.rate = persona === "hayat" ? 0.95 : persona === "noura" ? 0.93 : 0.9;
   utterance.pitch = persona === "noura" ? 1.14 : persona === "hayat" ? 1.08 : 0.78;
   utterance.volume = 1;
+  const voice = pickVoice(persona);
+  if (voice) utterance.voice = voice;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -124,6 +148,18 @@ export default function CompanionPage() {
 
   useEffect(() => {
     setIsArchitect(isArchitectSession());
+  }, []);
+
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    const syncVoices = () => {
+      loadVoices();
+    };
+    window.speechSynthesis.onvoiceschanged = syncVoices;
+    syncVoices();
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
   }, []);
 
   useEffect(() => {

@@ -9,6 +9,24 @@ interface MiniMessage {
   content: string;
 }
 
+let cachedVoices: SpeechSynthesisVoice[] = [];
+let voicesReady = false;
+
+function loadVoices() {
+  if (!("speechSynthesis" in window)) return [];
+  if (voicesReady && cachedVoices.length) return cachedVoices;
+  cachedVoices = window.speechSynthesis.getVoices() || [];
+  voicesReady = true;
+  return cachedVoices;
+}
+
+function pickVoice() {
+  const voices = loadVoices();
+  const arabic = voices.filter((v) => /ar/i.test(v.lang) || /Arabic/i.test(v.name));
+  const femaleish = arabic.filter((v) => /female|woman|zira|sara|sabrina|maria|noura|layla|leila|huda|amina|fatima/i.test(v.name));
+  return femaleish[0] || arabic[0] || voices[0] || null;
+}
+
 export default function HayatPersona() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -36,6 +54,18 @@ export default function HayatPersona() {
 
   useEffect(() => {
     setIsArchitect(isArchitectSession());
+  }, []);
+
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    const syncVoices = () => {
+      loadVoices();
+    };
+    window.speechSynthesis.onvoiceschanged = syncVoices;
+    syncVoices();
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -133,6 +163,8 @@ export default function HayatPersona() {
     utterance.rate = 0.94;
     utterance.pitch = 1.1;
     utterance.volume = 1;
+    const voice = pickVoice();
+    if (voice) utterance.voice = voice;
     utterance.onstart = () => setSpeaking(true);
     utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
