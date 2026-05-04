@@ -24,8 +24,9 @@ function speakArabic(text: string, persona: Persona) {
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "ar-SA";
-  utterance.rate = persona === "hayat" ? 1.02 : 0.98;
-  utterance.pitch = persona === "noura" ? 0.92 : persona === "companion" ? 1 : 1.06;
+  utterance.rate = persona === "hayat" ? 0.95 : persona === "noura" ? 0.93 : 0.9;
+  utterance.pitch = persona === "noura" ? 1.14 : persona === "hayat" ? 1.08 : 0.78;
+  utterance.volume = 1;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -36,7 +37,7 @@ const PERSONA_CONFIG = {
     subtitle: "الذاكرة الحية — العلم والحكمة",
     icon: <Brain className="w-5 h-5" />,
     emoji: "🔵",
-    avatar: "💠",
+    avatar: "👩‍🎓",
     gradient: "from-blue-500 to-indigo-600",
     bgGradient: "from-blue-500/10 to-indigo-600/10",
     border: "border-blue-500/20",
@@ -52,7 +53,7 @@ const PERSONA_CONFIG = {
     subtitle: "النبض الحي — رفيقة الرحلة اليومية",
     icon: <Leaf className="w-5 h-5" />,
     emoji: "🌿",
-    avatar: "🌿",
+    avatar: "👩‍🦰",
     gradient: "from-green-500 to-emerald-600",
     bgGradient: "from-green-500/10 to-emerald-600/10",
     border: "border-green-500/20",
@@ -68,7 +69,7 @@ const PERSONA_CONFIG = {
     subtitle: "القلب النابض — جسر العلم والروح",
     icon: <Heart className="w-5 h-5" />,
     emoji: "💝",
-    avatar: "💝",
+    avatar: "👨‍🦱",
     gradient: "from-pink-500 to-rose-600",
     bgGradient: "from-pink-500/10 to-rose-600/10",
     border: "border-pink-500/20",
