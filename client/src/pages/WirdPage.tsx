@@ -106,10 +106,16 @@ export default function WirdPage() {
   const startListening = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { alert("المتصفح لا يدعم التعرف على الصوت. استخدم Chrome."); return; }
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null;
+      recognitionRef.current.onerror = null;
+      recognitionRef.current.abort();
+      recognitionRef.current = null;
+    }
     const rec = new SR() as SpeechRecognition;
     rec.lang = "ar-SA";
-    rec.continuous = true;
     rec.interimResults = true;
+    rec.continuous = true;
     rec.onresult = (e: SpeechRecognitionEvent) => {
       let interim = "";
       let final = finalText;
@@ -121,15 +127,38 @@ export default function WirdPage() {
       setFinalText(final);
       setInterimText(interim);
     };
-    rec.onend = () => { setIsListening(false); setInterimText(""); };
-    rec.onerror = () => { setIsListening(false); setInterimText(""); };
+    rec.onend = () => {
+      if (isListening) {
+        try {
+          rec.start();
+          return;
+        } catch {
+        }
+      }
+      setIsListening(false);
+      setInterimText("");
+    };
+    rec.onerror = () => {
+      setIsListening(false);
+      setInterimText("");
+    };
     rec.start();
     recognitionRef.current = rec;
     setIsListening(true);
   };
 
   const stopListening = () => {
-    recognitionRef.current?.stop();
+    const rec = recognitionRef.current;
+    if (rec) {
+      rec.onend = null;
+      rec.onerror = null;
+      try {
+        rec.stop();
+      } catch {
+        rec.abort();
+      }
+      recognitionRef.current = null;
+    }
     setIsListening(false);
     setInterimText("");
   };
@@ -439,7 +468,9 @@ export default function WirdPage() {
                         color: result.status === "perfect" ? '#8a6000' : '#dc2626',
                       }}
                     >
-                      {result.status === "perfect" ? "✅ ممتاز!" : `⚠️ دقة التشكيل: ${result.accuracy_score}%`}
+                      {result.status === "perfect"
+                        ? "✅ ممتاز!"
+                        : `⚠️ دقة التلاوة: ${Number.isFinite(result.accuracy_score) ? result.accuracy_score : 0}%`}
                     </div>
                     {result.teacher_note && (
                       <p className="text-sm rounded-xl p-3 mt-1" style={{ color: '#8a7050', background: '#faf8f0' }} dir="rtl">
