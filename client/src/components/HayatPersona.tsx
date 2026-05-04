@@ -25,6 +25,7 @@ export default function HayatPersona() {
   const [isArchitect, setIsArchitect] = useState(false);
   const [pulse, setPulse] = useState(false);
   const [position, setPosition] = useState({ bottom: 24, right: 24 });
+  const [promptSentAt, setPromptSentAt] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const sessionId = getOrCreateSessionId();
@@ -45,6 +46,28 @@ export default function HayatPersona() {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || messages.length > 1) return;
+    const hour = new Date().getHours();
+    const slot =
+      hour < 6 ? "fajr" :
+      hour < 12 ? "morning" :
+      hour < 16 ? "dhuhr" :
+      hour < 19 ? "asr" :
+      hour < 22 ? "maghrib" : "night";
+    if (promptSentAt === slot) return;
+    const prompts = {
+      fajr: "🌿 الفجر نادانا… هل نبدأ بذكرٍ قصير ثم نرتّب نية اليوم؟",
+      morning: "صباح الخير، أنا هنا معك. هل تريد أن أذكّرك بوردك أو نبدأ بخطوة واحدة؟",
+      dhuhr: "منتصف اليوم، هل تحب أن نأخذ نفساً هادئاً ثم نرجع للمسار؟",
+      asr: "العصر وقت توازن. أستطيع أن أرافقك بتسبيح قصير أو مراجعة صغيرة.",
+      maghrib: "المغرب وقت سكينة، هل نختم اليوم بشكرٍ ودعاء قصير؟",
+      night: "قبل النوم، هل تريد أن نغلق اليوم بآية أو دعاء؟",
+    } as const;
+    setMessages((prev) => [...prev, { role: "assistant", content: prompts[slot] }]);
+    setPromptSentAt(slot);
+  }, [isOpen, messages.length, promptSentAt]);
 
   useEffect(() => {
     if (isOpen && messages.length === 1) {

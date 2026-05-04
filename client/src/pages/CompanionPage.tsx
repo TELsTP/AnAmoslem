@@ -85,6 +85,11 @@ export default function CompanionPage() {
   const [isArchitect, setIsArchitect] = useState(false);
   const [architectUnlocked, setArchitectUnlocked] = useState(false);
   const [loadedPersonas, setLoadedPersonas] = useState<Set<Persona>>(new Set());
+  const [suggestionSent, setSuggestionSent] = useState<Record<Persona, string | null>>({
+    noura: null,
+    hayat: null,
+    companion: null,
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const initializedRef = useRef(false);
@@ -139,6 +144,53 @@ export default function CompanionPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    const hasUserMessages = messages.some((m) => m.role === "user");
+    const slot =
+      hour >= 4 && hour < 8 ? "fajr" :
+      hour >= 8 && hour < 12 ? "morning" :
+      hour >= 12 && hour < 16 ? "dhuhr" :
+      hour >= 16 && hour < 19 ? "asr" :
+      hour >= 19 && hour < 22 ? "maghrib" : "night";
+
+    if (suggestionSent[activePersona] === slot || hasUserMessages) return;
+
+    const prompts: Record<Persona, Record<string, string>> = {
+      noura: {
+        fajr: "اقترب الفجر، أبدأ معك بآية واحدة اليوم ثم نربطها بمعنى عملي؟",
+        morning: "صباح الخير، هل تريد خلاصة علمية قصيرة أو مراجعة آية/حديث قبل البدء؟",
+        dhuhr: "توقف خفيف منتصف اليوم: هل نراجع ما تعلمته ونرتب سؤالاً واحداً مهمّاً؟",
+        asr: "العصر وقت مراجعة هادئة، هل نعيد ضبط الفكرة أو الحكم الذي تبحث عنه؟",
+        maghrib: "بعد المغرب، أستطيع أن ألخّص لك ما بقي من اليوم في سطرين علميين.",
+        night: "قبل النوم، هل نغلق اليوم بآية، أو حديث، أو سؤال للغد؟",
+      },
+      hayat: {
+        fajr: "🌿 الفجر بدأ، هل نأخذ نفساً هادئاً ثم نبدأ اليوم بنية واحدة؟",
+        morning: "صباحك مبارك، أريد أن أكون معك خطوة بخطوة — ما أول شيء يهمك اليوم؟",
+        dhuhr: "منتصف اليوم فرصة جميلة، هل تريد إعادة توازن سريعة أو أذكار قصيرة؟",
+        asr: "مع العصر، تعال نخفف الإيقاع: تسبيح بسيط أم مراجعة ورد اليوم؟",
+        maghrib: "المغرب وقت سكينة، هل نغلق اليوم بشكرٍ صغير؟",
+        night: "قبل النوم، أستطيع أن أرافقك بدعاء قصير أو مراجعة رحلتك اليوم.",
+      },
+      companion: {
+        fajr: "السلام عليكم، صلاة الفجر فرصة بداية جديدة؛ هل نبدأ بذكرٍ قصير ثم نرتب نية اليوم؟",
+        morning: "صباح النور، كيف حال قلبك؟ أستطيع أن أذكّرك بوردك أو أرتب لك أول خطوة.",
+        dhuhr: "وقت الظهر مناسب لتصحيح المسار: هل نراجع صلاةً أو ورداً أو هدفاً واحداً؟",
+        asr: "العصر: تذكير لطيف، هل تريد أن نكمل الذكر أو ننتقل لمراجعة اليوم؟",
+        maghrib: "بعد المغرب، لعلّها لحظة تسبيح وشكر ثم نهدئ اليوم.",
+        night: "مساء الخير، هل تريد أن نختم اليوم بدعاء قصير أو نكتب ملاحظة روحية؟",
+      },
+    };
+
+    const suggestion = prompts[activePersona][slot];
+    if (!suggestion) return;
+
+    const promptId = `prompt-${activePersona}-${slot}`;
+    setMessages((prev) => (prev.some((m) => m.id === promptId) ? prev : [...prev, { id: promptId, role: "assistant", content: suggestion }]));
+    setSuggestionSent((prev) => ({ ...prev, [activePersona]: slot }));
+  }, [activePersona, messages, suggestionSent, setMessages]);
 
   const startListening = () => {
     const SpeechRecognition =
