@@ -159,9 +159,9 @@ export default function HayatPersona() {
     if (!voiceEnabled || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "ar-SA";
-    utterance.rate = 0.94;
-    utterance.pitch = 1.1;
+    utterance.lang = "ar-EG";
+    utterance.rate = 0.96;
+    utterance.pitch = 1.05;
     utterance.volume = 1;
     const voice = pickVoice();
     if (voice) utterance.voice = voice;

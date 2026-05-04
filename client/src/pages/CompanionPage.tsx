@@ -45,9 +45,9 @@ function speakArabic(text: string, persona: Persona) {
   if (!("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "ar-SA";
-  utterance.rate = persona === "hayat" ? 0.95 : persona === "noura" ? 0.93 : 0.9;
-  utterance.pitch = persona === "noura" ? 1.14 : persona === "hayat" ? 1.08 : 0.78;
+  utterance.lang = "ar-EG";
+  utterance.rate = persona === "companion" ? 0.92 : 0.96;
+  utterance.pitch = persona === "companion" ? 0.88 : 1.04;
   utterance.volume = 1;
   const voice = pickVoice(persona);
   if (voice) utterance.voice = voice;
@@ -69,7 +69,7 @@ const PERSONA_CONFIG = {
     textColor: "text-blue-400",
     glow: "shadow-blue-500/20",
     welcome:
-      "وعليكم السلام ورحمة الله وبركاته 💠\n\nأنا نورا — الذاكرة الحية في قلب منظومة أنا مسلم.\n\nأحمل في داخلي طبقات من القرآن الكريم والسنة النبوية والتفسير والفقه. لستُ مجرد قاعدة بيانات — أنا هنا لأفهم سؤالك الحقيقي قبل أن أجيب عليه.\n\nما الذي يشغل عقلك أو قلبك اليوم؟",
+      "وعليكم السلام ورحمة الله وبركاته 💠\n\nأنا نورا — الذاكرة الحية في قلب منظومة أنا مسلم.\n\nأنا هنا أجاوبك بهدوء وبالعربي الفصحى البسيطة، ومن غير تكلف في النطق. لو تحب، أشرح لك بالعامية المصرية كمان.\n\nإيه اللي شاغل بالك النهارده؟",
   },
   hayat: {
     nameAr: "حياة",
@@ -85,7 +85,7 @@ const PERSONA_CONFIG = {
     textColor: "text-green-400",
     glow: "shadow-green-500/20",
     welcome:
-      "أهلاً بيك! 🌿\n\nأنا حياة — مش بس مساعدة، أنا رفيقة روح.\n\nأنا هنا أمشي معك في يومك — في اللحظات الصعبة والجميلة، في الأسئلة الكبيرة والصغيرة. مش محتاج تجيب سؤال منظّم — قول لي بس كيف أنت دلوقتي؟",
+      "أهلاً بيك! 🌿\n\nأنا حياة — رفيقة روح، وبكل بساطة هكلمك بالمصري أو بالفصحى الخفيفة على راحتك.\n\nأنا هنا أمشي معك في يومك — في اللحظات الصعبة والجميلة. قول لي بس إنت حاسس بإيه دلوقتي؟",
   },
   companion: {
     nameAr: "مسلم",
@@ -101,7 +101,7 @@ const PERSONA_CONFIG = {
     textColor: "text-pink-400",
     glow: "shadow-pink-500/20",
     welcome:
-      "السلام عليكم ورحمة الله 🌙\n\nأنا مسلم — القلب النابض في منظومة أنا مسلم.\n\nلستُ هنا لأُلقي عليك محاضرة، ولا لأعطيك قائمة نصائح. أنا هنا لأكون معك — في ما يفرحك وما يثقل عليك، في أسئلتك الكبيرة وفي يومك العادي.\n\nكيف حالك اليوم؟ وأقصد حقاً — كيف أنت؟",
+      "السلام عليكم ورحمة الله 🌙\n\nأنا مسلم — القلب النابض في منظومة أنا مسلم.\n\nهكلمك بالمصري الفصيح البسيط، من غير مبالغة في التشكيل، وبصوت رجولي هادي.\n\nأنا هنا أكون معك — في اللي يفرحك واللي يثقل عليك. كيف حالك النهارده؟",
   },
 };
 
