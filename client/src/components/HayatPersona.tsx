@@ -11,6 +11,7 @@ interface MiniMessage {
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
 let voicesReady = false;
+const HAYAT_CACHE_KEY = "anamoslem_hayat_cache";
 
 function loadVoices() {
   if (!("speechSynthesis" in window)) return [];
@@ -25,6 +26,21 @@ function pickVoice() {
   const arabic = voices.filter((v) => /ar/i.test(v.lang) || /Arabic/i.test(v.name));
   const femaleish = arabic.filter((v) => /female|woman|zira|sara|sabrina|maria|noura|layla|leila|huda|amina|fatima/i.test(v.name));
   return femaleish[0] || arabic[0] || voices[0] || null;
+}
+
+function loadCachedMessages(): MiniMessage[] | null {
+  try {
+    const raw = localStorage.getItem(HAYAT_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as MiniMessage[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedMessages(messages: MiniMessage[]) {
+  try {
+    localStorage.setItem(HAYAT_CACHE_KEY, JSON.stringify(messages));
+  } catch {}
 }
 
 export default function HayatPersona() {
@@ -110,9 +126,16 @@ export default function HayatPersona() {
 
   useEffect(() => {
     if (isOpen && messages.length === 1) {
+      const cached = loadCachedMessages();
+      if (cached?.length) {
+        setMessages(cached);
+        return;
+      }
       loadConversation(sessionId, "hayat", 20).then((saved) => {
         if (saved.length > 0) {
-          setMessages(saved.map((m) => ({ role: m.role, content: m.content })));
+          const restored = saved.map((m) => ({ role: m.role, content: m.content }));
+          setMessages(restored);
+          saveCachedMessages(restored);
         }
       });
     }
@@ -189,6 +212,7 @@ export default function HayatPersona() {
     const userMsg: MiniMessage = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
+    saveCachedMessages(newMessages);
     setInput("");
     setInterimText("");
     setIsLoading(true);
@@ -245,6 +269,7 @@ export default function HayatPersona() {
       }
 
       if (fullResponse) {
+        saveCachedMessages([...newMessages, { role: "assistant", content: fullResponse }]);
         await saveMessage({
           session_id: sessionId,
           persona: "hayat",

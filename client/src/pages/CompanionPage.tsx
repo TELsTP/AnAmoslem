@@ -21,6 +21,7 @@ interface Message {
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
 let voicesReady = false;
+const CONVERSATION_CACHE_KEY = "anamoslem_conversation_cache";
 
 function loadVoices() {
   if (!("speechSynthesis" in window)) return [];
@@ -52,6 +53,27 @@ function speakArabic(text: string, persona: Persona) {
   const voice = pickVoice(persona);
   if (voice) utterance.voice = voice;
   window.speechSynthesis.speak(utterance);
+}
+
+function loadCachedConversation(sessionId: string, persona: Persona) {
+  try {
+    const raw = localStorage.getItem(CONVERSATION_CACHE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as Record<string, Record<string, Message[]>>;
+    return data[sessionId]?.[persona] || null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedConversation(sessionId: string, persona: Persona, messages: Message[]) {
+  try {
+    const raw = localStorage.getItem(CONVERSATION_CACHE_KEY);
+    const data = raw ? (JSON.parse(raw) as Record<string, Record<string, Message[]>>) : {};
+    data[sessionId] = data[sessionId] || {};
+    data[sessionId][persona] = messages;
+    localStorage.setItem(CONVERSATION_CACHE_KEY, JSON.stringify(data));
+  } catch {}
 }
 
 const PERSONA_CONFIG = {
@@ -164,6 +186,12 @@ export default function CompanionPage() {
 
   useEffect(() => {
     if (loadedPersonas.has(activePersona)) return;
+    const cached = loadCachedConversation(sessionId, activePersona);
+    if (cached?.length) {
+      setMessages(cached);
+      setLoadedPersonas((prev) => new Set([...prev, activePersona]));
+      return;
+    }
     loadConversation(sessionId, activePersona, 50).then((saved) => {
       if (saved.length > 0) {
         const restored: Message[] = saved.map((m, i) => ({
@@ -172,6 +200,7 @@ export default function CompanionPage() {
           content: m.content,
         }));
         setMessages(restored);
+        saveCachedConversation(sessionId, activePersona, restored);
       }
       setLoadedPersonas((prev) => new Set([...prev, activePersona]));
     });
@@ -324,6 +353,7 @@ export default function CompanionPage() {
 
     const currentMessages = [...messages, userMessage];
     setMessages(currentMessages);
+    saveCachedConversation(sessionId, activePersona, currentMessages);
     setInput("");
     setInterimText("");
     setIsLoading(true);
@@ -385,6 +415,8 @@ export default function CompanionPage() {
       }
 
       if (fullResponse) {
+        const finalMessages = [...currentMessages, { id: assistantId, role: "assistant", content: fullResponse }];
+        saveCachedConversation(sessionId, activePersona, finalMessages);
         await saveMessage({
           session_id: sessionId,
           persona: activePersona,
@@ -407,9 +439,11 @@ export default function CompanionPage() {
   };
 
   const clearConversation = () => {
-    setMessages([
+    const cleared = [
       { id: `clear-${Date.now()}`, role: "assistant", content: PERSONA_CONFIG[activePersona].welcome },
-    ]);
+    ];
+    setMessages(cleared);
+    saveCachedConversation(sessionId, activePersona, cleared);
   };
 
   return (
