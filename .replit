@@ -46,7 +46,7 @@ externalPort = 3000
 [deployment]
 deploymentTarget = "static"
 run = ["sh", "-c", "npm run dev"]
-publicDir = "dist/public"
+publicDir = "dist/"
 
 [userenv]
 
