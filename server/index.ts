@@ -1,6 +1,12 @@
 import express from "express";
 import OpenAI from "openai";
+import path from "path";
+import { fileURLToPath } from "url";
+import { existsSync } from "fs";
 import { HADITH_DATA, TOPICS, getDailyHadith, getHadithByTopic, searchHadith } from "./hadith-data.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
@@ -281,7 +287,26 @@ app.get("/api/tafseer/:surah", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
+
+if (process.env.NODE_ENV === "production") {
+  const clientDistPath = path.resolve(process.cwd(), "dist", "client");
+  if (existsSync(clientDistPath)) {
+    app.use(express.static(clientDistPath));
+    app.use((req, res, next) => {
+      if (req.method === "GET" && !req.path.startsWith("/api/")) {
+        res.sendFile("index.html", { root: clientDistPath });
+      } else {
+        next();
+      }
+    });
+    console.log(`[AnaMoslem] Serving frontend from: ${clientDistPath}`);
+  } else {
+    console.warn(`[AnaMoslem] dist/client not found — run npm run build first`);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`[AnaMoslem] Server running on port ${PORT}`);
   console.log(`[AnaMoslem] Personas active: Noura (نورا) | Hayat (حياة) | Muslim (مسلم)`);
+  console.log(`[AnaMoslem] Mode: ${process.env.NODE_ENV || "development"}`);
 });

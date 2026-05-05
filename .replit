@@ -36,6 +36,10 @@ localPort = 3001
 externalPort = 3001
 
 [[ports]]
+localPort = 3099
+externalPort = 3002
+
+[[ports]]
 localPort = 5000
 externalPort = 80
 
@@ -44,9 +48,10 @@ localPort = 5001
 externalPort = 3000
 
 [deployment]
-deploymentTarget = "static"
-run = ["sh", "-c", "npm run dev"]
+deploymentTarget = "autoscale"
+run = ["sh", "-c", "NODE_ENV=production tsx server/index.ts"]
 publicDir = "dist/"
+build = ["npm", "run", "build"]
 
 [userenv]
 
