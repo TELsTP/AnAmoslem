@@ -401,28 +401,11 @@ function RecitationMode({ surah, onClose, isRegistered = false }: { surah: Surah
     rec.interimResults = true;
     rec.maxAlternatives = 3;
 
-   rec.onend = () => {
-  setInterimText("");
-  // Auto-restart if still supposed to be listening
-  if (recognitionRef.current) {
-    try {
-      recognitionRef.current = new SpeechRec();
-      recognitionRef.current.lang = "ar-SA";
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.maxAlternatives = 3;
-      recognitionRef.current.onstart = () => setIsListening(true);
-      recognitionRef.current.onend = rec.onend;
-      recognitionRef.current.onerror = rec.onerror;
-      recognitionRef.current.onresult = rec.onresult;
-      recognitionRef.current.start();
-    } catch {
+    rec.onstart = () => setIsListening(true);
+    rec.onend = () => {
       setIsListening(false);
-    }
-  } else {
-    setIsListening(false);
-  }
-};
+      setInterimText("");
+    };
     rec.onerror = () => { setIsListening(false); setInterimText(""); };
 
     rec.onresult = (e: any) => {
@@ -443,10 +426,9 @@ function RecitationMode({ surah, onClose, isRegistered = false }: { surah: Surah
   }, [handleRecognized]);
 
   const stopListening = useCallback(() => {
-  const rec = recognitionRef.current;
-  recognitionRef.current = null; // null FIRST to prevent auto-restart
-  rec?.stop();
-}, []);
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+  }, []);
 
   const toggleMic = useCallback(() => {
     if (isListening) stopListening();
