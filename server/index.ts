@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 import { HADITH_DATA, TOPICS, getDailyHadith, getHadithByTopic, searchHadith } from "./hadith-data.js";
 
+import chatWithMemoryRouter from './chat_with_memory';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -305,6 +307,7 @@ if (process.env.NODE_ENV === "production") {
   }
 }
 
+app.use('/api', chatWithMemoryRouter);
 app.listen(PORT, () => {
   console.log(`[AnaMoslem] Server running on port ${PORT}`);
   console.log(`[AnaMoslem] Personas active: Noura (نورا) | Hayat (حياة) | Muslim (مسلم)`);
