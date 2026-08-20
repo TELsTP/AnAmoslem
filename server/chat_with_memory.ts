@@ -19,105 +19,11 @@ const openai = new OpenAI({
 type ConversationRow = {
   id: string;
   session_id: string;
+  persona?: string;
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
 };
-
-type SessionAnalysis = {
-  summary: string;
-  main_topics: string[];
-  emotional_tone: string;
-  notes_for_future: string[];
-};
-
-function extractJson(text: string): string {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1) {
-    throw new Error('No JSON object found in text');
-  }
-  return text.slice(start, end + 1);
-}
-
-async function summarizeSession(sessionId: string): Promise<void> {
-  const { data: conversations, error } = await supabase
-    .from('ana_moslem_conversations')
-    .select('*')
-    .eq('session_id', sessionId)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    console.error('Error fetching conversations for summary:', error);
-    return;
-  }
-
-  if (!conversations || conversations.length === 0) {
-    console.warn('No conversations found for session:', sessionId);
-    return;
-  }
-
-  const convs = conversations as ConversationRow[];
-
-  const conversationText = convs
-    .map((c) => `${c.role === 'user' ? 'User' : 'Assistant'}: ${c.content}`)
-    .join('\n');
-
-  const systemPrompt = `
-أنت مساعد يقوم بتحليل جلسة حوارية بين "مستخدم" و"نظام إرشادي روحي/معرفي (نورا/حياة/مسلم)".
-مطلوب منك إنتاج ملخص منظم في JSON فقط دون أي شروح خارجية.
-
-يجب أن يحتوي الـ JSON على:
-- "summary": ملخص عربي واضح لما دار في الجلسة (3-6 جمل).
-- "main_topics": قائمة كلمات مفتاحية للمواضيع الأساسية (مثل: "الصلاة", "الوسواس", "اليأس", "تدبر القرآن").
-- "emotional_tone": اختر كلمة واحدة تصف الحالة الشعورية العامة للمستخدم:
-  ["neutral", "anxious", "sad", "hopeful", "guilty", "confused"].
-- "notes_for_future": ملاحظات قصيرة تساعد المنظومة في الحوارات القادمة مع هذا المستخدم (جمل قصيرة).
-
-أعد النتيجة في JSON صالح للقراءة آلياً فقط.
-`;
-
-  const userPrompt = `
-هذه هي المحادثة الكاملة (من الأقدم إلى الأحدث):
-
-${conversationText}
-`;
-
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-5.1',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    temperature: 0.2,
-  });
-
-  const raw = completion.choices[0]?.message?.content ?? '';
-
-  let analysis: SessionAnalysis;
-
-  try {
-    const jsonText = extractJson(raw);
-    analysis = JSON.parse(jsonText) as SessionAnalysis;
-  } catch (e) {
-    console.error('Failed to parse session summary JSON:', e, 'raw:', raw);
-    return;
-  }
-
-  const { error: updateError } = await supabase
-    .from('ana_moslem_sessions')
-    .update({
-      summary: analysis.summary,
-      main_topics: analysis.main_topics,
-      emotional_tone: analysis.emotional_tone,
-      ended_at: new Date().toISOString(),
-    })
-    .eq('id', sessionId);
-
-  if (updateError) {
-    console.error('Error updating session with summary:', updateError);
-  }
-}
 
 router.post('/chat-with-memory', async (req, res) => {
   try {
@@ -133,81 +39,60 @@ router.post('/chat-with-memory', async (req, res) => {
       character: 'nora' | 'hayah' | 'muslim';
     };
 
-    const { data: lastSessions, error: sessionError } = await supabase
+    if (!userId || !message || !character) {
+      return res.status(400).json({
+        error: 'userId, message, and character are required',
+      });
+    }
+
+    const persona = character === 'hayah' ? 'hayat' : character === 'muslim' ? 'companion' : 'noura';
+
+    const { data: session, error: sessionError } = await supabase
       .from('ana_moslem_sessions')
       .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1);
+      .eq('id', userId)
+      .maybeSingle();
 
     if (sessionError) {
       console.error('Error fetching last session:', sessionError);
     }
 
-    let currentSessionId: string | null = null;
-    let lastSession: any = lastSessions?.[0] ?? null;
-
-    if (lastSession) {
-      const lastActivityTime = new Date(lastSession.created_at).getTime();
-      const now = Date.now();
-      const diffMinutes = (now - lastActivityTime) / (1000 * 60);
-
-      if (!lastSession.summary && diffMinutes > 30) {
-        summarizeSession(lastSession.id).catch((e) =>
-          console.error('Error summarizing session in background:', e),
-        );
-        lastSession = null;
-      }
-    }
-
-    if (!lastSession) {
-      const { data: newSession, error: createError } = await supabase
+    if (!session) {
+      const { error: createError } = await supabase
         .from('ana_moslem_sessions')
         .insert([
           {
-            user_id: userId,
-            character,
+            id: userId,
           },
         ])
-        .select()
-        .single();
 
-      if (createError || !newSession) {
+      if (createError) {
         console.error('Error creating new session:', createError);
         return res.status(500).json({ error: 'Failed to create session' });
       }
-
-      currentSessionId = newSession.id;
-      lastSession = newSession;
-    } else {
-      currentSessionId = lastSession.id;
     }
 
-    let previousSessionContext = '';
-    if (lastSession.summary) {
-      previousSessionContext = `
-معلومات عن الجلسة السابقة لهذا المستخدم:
+    const { data: previousConversations } = await supabase
+      .from('ana_moslem_conversations')
+      .select('role, content')
+      .eq('session_id', userId)
+      .eq('persona', persona)
+      .order('created_at', { ascending: false })
+      .limit(12);
 
-- ملخص آخر جلسة:
-${lastSession.summary}
-
-- المواضيع الأساسية:
-${
-        Array.isArray(lastSession.main_topics)
-          ? lastSession.main_topics.join(', ')
-          : ''
-      }
-
-- الحالة الشعورية العامة:
-${lastSession.emotional_tone || 'غير محددة'}
-`;
-    }
+    const previousSessionContext = previousConversations?.length
+      ? `\nسياق مختصر من الحوار السابق:\n${(previousConversations as ConversationRow[])
+          .reverse()
+          .map((conversation) => `${conversation.role === 'user' ? 'المستخدم' : 'المساعد'}: ${conversation.content}`)
+          .join('\n')}\n`
+      : '';
 
     const { error: convError } = await supabase
       .from('ana_moslem_conversations')
       .insert([
         {
-          session_id: currentSessionId,
+          session_id: userId,
+          persona,
           role: 'user',
           content: message,
         },
@@ -241,7 +126,8 @@ ${previousSessionContext}
       .from('ana_moslem_conversations')
       .insert([
         {
-          session_id: currentSessionId,
+          session_id: userId,
+          persona,
           role: 'assistant',
           content: assistantReply,
         },
@@ -251,9 +137,14 @@ ${previousSessionContext}
       console.error('Error inserting assistant message:', assistantConvError);
     }
 
+    await supabase
+      .from('ana_moslem_sessions')
+      .update({ last_active_at: new Date().toISOString() })
+      .eq('id', userId);
+
     res.json({
       reply: assistantReply,
-      sessionId: currentSessionId,
+      sessionId: userId,
     });
   } catch (e) {
     console.error('Chat-with-memory route error:', e);
