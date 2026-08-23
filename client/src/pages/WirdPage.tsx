@@ -15,7 +15,7 @@ interface Surah {
 }
 
 interface EvaluationResult {
-  status: "perfect" | "needs_improvement";
+  status: "perfect" | "needs_improvement" | "unavailable";
   accuracy_score: number;
   detailed_errors: Array<{ word_index: number; expected: string; provided: string; type: "shakl" | "word" }>;
   teacher_note: string;
@@ -104,6 +104,7 @@ export default function WirdPage() {
   }, []);
 
   const startListening = () => {
+    if (!window.confirm("سيطلب المتصفح إذن الميكروفون لهذه الجلسة فقط. يمكنك المتابعة أو الإلغاء.")) return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { alert("المتصفح لا يدعم التعرف على الصوت. استخدم Chrome."); return; }
     if (recognitionRef.current) {
@@ -166,29 +167,13 @@ export default function WirdPage() {
   const checkRecitation = async () => {
     const userText = (finalText + " " + interimText).trim();
     if (!userText) return;
-    const originalText = sessionVerses[currentVerseIdx]?.text;
-    if (!originalText) return;
     stopListening();
-    setIsEvaluating(true);
-    setResult(null);
-    try {
-      const res = await fetch("/api/evaluate-recitation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ originalText, userText }),
-      });
-      const data: EvaluationResult = await res.json();
-      setResult(data);
-    } catch {
-      setResult({
-        status: "needs_improvement",
-        accuracy_score: 0,
-        detailed_errors: [],
-        teacher_note: "تعذر الاتصال بمحرك التقييم، حاول مجدداً.",
-      });
-    } finally {
-      setIsEvaluating(false);
-    }
+    setResult({
+      status: "unavailable",
+      accuracy_score: 0,
+      detailed_errors: [],
+      teacher_note: "التقييم الذكي للتلاوة غير متاح حالياً. يمكنك متابعة التدريب المحلي أو الانتقال إلى الآية التالية.",
+    });
   };
 
   const nextVerse = () => {
@@ -248,7 +233,7 @@ export default function WirdPage() {
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-lg">🎙️</div>
             <div>
               <h1 className="text-lg font-bold text-emerald-500">الورد والتسميع</h1>
-              <p className="text-xs text-muted-foreground">تسميع ذكي بالذكاء الاصطناعي</p>
+              <p className="text-xs text-muted-foreground">تدريب تلاوة محلي مع ميكروفون عند الطلب</p>
             </div>
           </div>
           <div className="w-16" />
@@ -468,7 +453,9 @@ export default function WirdPage() {
                         color: result.status === "perfect" ? '#8a6000' : '#dc2626',
                       }}
                     >
-                      {result.status === "perfect"
+                      {result.status === "unavailable"
+                        ? "التقييم الذكي غير متاح حالياً"
+                        : result.status === "perfect"
                         ? "✅ ممتاز!"
                         : `⚠️ دقة التلاوة: ${Number.isFinite(result.accuracy_score) ? result.accuracy_score : 0}%`}
                     </div>
@@ -575,7 +562,7 @@ export default function WirdPage() {
                     className="px-10 py-3 rounded-2xl font-black text-lg transition shadow-lg disabled:opacity-40 text-white"
                     style={{ background: 'linear-gradient(135deg,#B5891A,#e4b94a)' }}
                   >
-                    {isEvaluating ? "جاري التقييم الذكي..." : "✅ تأكيد التسميع وفحص الأخطاء"}
+                    {isEvaluating ? "جارٍ التأكيد..." : "✅ تأكيد التلاوة"}
                   </button>
                 )}
 

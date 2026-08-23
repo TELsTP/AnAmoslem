@@ -1,17 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, Mic, MicOff, Brain, Leaf, Heart, Sparkles, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { Send, Mic, MicOff, Brain, Leaf, Heart, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { useLocation } from "wouter";
-import {
-  getOrCreateSessionId,
-  isArchitectSession,
-  detectHandshake,
-  activateArchitectMode,
-  getSessionInfo,
-} from "../lib/session";
-import { saveMessage, loadConversation } from "../lib/supabase";
-import type { Persona, ConversationMessage } from "../lib/supabase";
+
+type Persona = "noura" | "hayat" | "companion";
 
 interface Message {
   id: string;
@@ -21,7 +14,7 @@ interface Message {
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
 let voicesReady = false;
-const CONVERSATION_CACHE_KEY = "anamoslem_conversation_cache";
+const MAX_MESSAGE_LENGTH = 4000;
 
 function loadVoices() {
   if (!("speechSynthesis" in window)) return [];
@@ -55,25 +48,8 @@ function speakArabic(text: string, persona: Persona) {
   window.speechSynthesis.speak(utterance);
 }
 
-function loadCachedConversation(sessionId: string, persona: Persona) {
-  try {
-    const raw = localStorage.getItem(CONVERSATION_CACHE_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw) as Record<string, Record<string, Message[]>>;
-    return data[sessionId]?.[persona] || null;
-  } catch {
-    return null;
-  }
-}
-
-function saveCachedConversation(sessionId: string, persona: Persona, messages: Message[]) {
-  try {
-    const raw = localStorage.getItem(CONVERSATION_CACHE_KEY);
-    const data = raw ? (JSON.parse(raw) as Record<string, Record<string, Message[]>>) : {};
-    data[sessionId] = data[sessionId] || {};
-    data[sessionId][persona] = messages;
-    localStorage.setItem(CONVERSATION_CACHE_KEY, JSON.stringify(data));
-  } catch {}
+function confirmVoiceConsent(): boolean {
+  return window.confirm("سيطلب المتصفح إذن الميكروفون لهذه المحادثة فقط. يمكنك المتابعة أو الإلغاء.");
 }
 
 const PERSONA_CONFIG = {
@@ -139,11 +115,8 @@ export default function CompanionPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [interimText, setInterimText] = useState("");
-  const [isArchitect, setIsArchitect] = useState(false);
-  const [architectUnlocked, setArchitectUnlocked] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
-  const [loadedPersonas, setLoadedPersonas] = useState<Set<Persona>>(new Set());
   const [suggestionSent, setSuggestionSent] = useState<Record<Persona, string | null>>({
     noura: null,
     hayat: null,
@@ -152,7 +125,6 @@ export default function CompanionPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const initializedRef = useRef(false);
-  const sessionId = getOrCreateSessionId();
   const persona = PERSONA_CONFIG[activePersona];
 
   const messages = messagesByPersona[activePersona];
@@ -169,10 +141,6 @@ export default function CompanionPage() {
   );
 
   useEffect(() => {
-    setIsArchitect(isArchitectSession());
-  }, []);
-
-  useEffect(() => {
     if (!("speechSynthesis" in window)) return;
     const syncVoices = () => {
       loadVoices();
@@ -183,28 +151,6 @@ export default function CompanionPage() {
       window.speechSynthesis.onvoiceschanged = null;
     };
   }, []);
-
-  useEffect(() => {
-    if (loadedPersonas.has(activePersona)) return;
-    const cached = loadCachedConversation(sessionId, activePersona);
-    if (cached?.length) {
-      setMessages(cached);
-      setLoadedPersonas((prev) => new Set([...prev, activePersona]));
-      return;
-    }
-    loadConversation(sessionId, activePersona, 50).then((saved) => {
-      if (saved.length > 0) {
-        const restored: Message[] = saved.map((m, i) => ({
-          id: `restored-${i}`,
-          role: m.role,
-          content: m.content,
-        }));
-        setMessages(restored);
-        saveCachedConversation(sessionId, activePersona, restored);
-      }
-      setLoadedPersonas((prev) => new Set([...prev, activePersona]));
-    });
-  }, [activePersona]);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -286,6 +232,7 @@ export default function CompanionPage() {
   }, [activePersona, messages, suggestionSent, setMessages]);
 
   const startListening = () => {
+    if (!confirmVoiceConsent()) return;
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -335,15 +282,8 @@ export default function CompanionPage() {
   };
 
   const handleSendMessage = async () => {
-    const text = (input + interimText).trim();
+    const text = (input + interimText).trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || isLoading) return;
-
-    if (detectHandshake(text)) {
-      activateArchitectMode();
-      setIsArchitect(true);
-      setArchitectUnlocked(true);
-      setTimeout(() => setArchitectUnlocked(false), 4000);
-    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -353,19 +293,10 @@ export default function CompanionPage() {
 
     const currentMessages = [...messages, userMessage];
     setMessages(currentMessages);
-    saveCachedConversation(sessionId, activePersona, currentMessages);
     setInput("");
     setInterimText("");
     setIsLoading(true);
     stopListening();
-
-    await saveMessage({
-      session_id: sessionId,
-      persona: activePersona,
-      role: "user",
-      content: text,
-      is_architect_context: isArchitect,
-    } as ConversationMessage);
 
     const assistantId = (Date.now() + 1).toString();
     setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
@@ -375,9 +306,8 @@ export default function CompanionPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: currentMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: currentMessages.slice(-12).map((m) => ({ role: m.role, content: m.content })),
           persona: activePersona,
-          isArchitect,
         }),
       });
 
@@ -414,17 +344,6 @@ export default function CompanionPage() {
         }
       }
 
-      if (fullResponse) {
-        const finalMessages = [...currentMessages, { id: assistantId, role: "assistant", content: fullResponse }];
-        saveCachedConversation(sessionId, activePersona, finalMessages);
-        await saveMessage({
-          session_id: sessionId,
-          persona: activePersona,
-          role: "assistant",
-          content: fullResponse,
-          is_architect_context: isArchitect,
-        } as ConversationMessage);
-      }
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
@@ -443,31 +362,10 @@ export default function CompanionPage() {
       { id: `clear-${Date.now()}`, role: "assistant", content: PERSONA_CONFIG[activePersona].welcome },
     ];
     setMessages(cleared);
-    saveCachedConversation(sessionId, activePersona, cleared);
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col" style={{ direction: "rtl" }}>
-      {architectUnlocked && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 9998,
-            background: "linear-gradient(90deg, #fbbf24, #f59e0b)",
-            padding: "10px 20px",
-            textAlign: "center",
-            color: "#000",
-            fontWeight: 700,
-            fontSize: 14,
-          }}
-        >
-          ✦ وضع المعماري مفعّل — Nakamitshe-Telstp-235153 — مرحباً 3M ✦
-        </div>
-      )}
-
       <header
         className={`border-b border-border bg-gradient-to-r ${persona.bgGradient} py-3 sticky top-0 z-50 backdrop-blur`}
       >
@@ -485,14 +383,7 @@ export default function CompanionPage() {
               {persona.avatar}
             </div>
             <div className="text-right">
-              <div className="flex items-center gap-2 justify-end">
-                <h1 className={`text-lg font-bold ${persona.textColor}`}>{persona.nameAr}</h1>
-                {isArchitect && (
-                  <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">
-                    ✦ مهندس
-                  </span>
-                )}
-              </div>
+              <h1 className={`text-lg font-bold ${persona.textColor}`}>{persona.nameAr}</h1>
               <p className="text-xs text-muted-foreground">{persona.subtitle}</p>
             </div>
           </div>
@@ -604,6 +495,7 @@ export default function CompanionPage() {
               className="flex-1 text-right bg-transparent resize-none outline-none text-sm leading-relaxed min-h-[36px] max-h-[120px]"
               dir="rtl"
               disabled={isLoading}
+              maxLength={MAX_MESSAGE_LENGTH}
               rows={1}
               style={{ fieldSizing: "content" } as React.CSSProperties}
             />
@@ -629,21 +521,6 @@ export default function CompanionPage() {
             </div>
           </div>
         </Card>
-
-        {isArchitect && (
-          <div
-            className="mt-2 px-3 py-1.5 rounded-lg text-xs text-center"
-            style={{
-              background: "rgba(251,191,36,0.05)",
-              border: "1px solid rgba(251,191,36,0.15)",
-              color: "rgba(251,191,36,0.6)",
-              direction: "ltr",
-            }}
-          >
-            <Sparkles className="w-3 h-3 inline mr-1" />
-            Architect Mode Active · Session: {getSessionInfo().sessionId.slice(0, 16)}...
-          </div>
-        )}
       </main>
     </div>
   );

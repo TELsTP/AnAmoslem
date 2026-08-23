@@ -5,13 +5,49 @@ import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 import { HADITH_DATA, TOPICS, getDailyHadith, getHadithByTopic, searchHadith } from "./hadith-data.js";
 
-import chatWithMemoryRouter from './chat_with_memory';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "64kb" }));
+
+const MAX_CHAT_MESSAGES = 24;
+const MAX_CHAT_MESSAGE_LENGTH = 4000;
+const CHAT_WINDOW_MS = 5 * 60 * 1000;
+const CHAT_MAX_REQUESTS_PER_WINDOW = 30;
+const chatRequestBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimitChat(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const key = req.ip || "unknown";
+  const now = Date.now();
+  const bucket = chatRequestBuckets.get(key);
+  if (!bucket || now >= bucket.resetAt) {
+    chatRequestBuckets.set(key, { count: 1, resetAt: now + CHAT_WINDOW_MS });
+    next();
+    return;
+  }
+  if (bucket.count >= CHAT_MAX_REQUESTS_PER_WINDOW) {
+    res.setHeader("Retry-After", Math.ceil((bucket.resetAt - now) / 1000));
+    res.status(429).json({ error: "تم تجاوز الحد المؤقت للطلبات", code: "CHAT_RATE_LIMITED" });
+    return;
+  }
+  bucket.count += 1;
+  next();
+}
+
+function getValidChatMessages(value: unknown): Array<{ role: "user" | "assistant"; content: string }> | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_CHAT_MESSAGES) return null;
+  const allowedRoles = new Set(["user", "assistant"]);
+  const normalized = value.map((message) => {
+    if (!message || typeof message !== "object") return null;
+    const candidate = message as { role?: unknown; content?: unknown };
+    if (!allowedRoles.has(String(candidate.role)) || typeof candidate.content !== "string") return null;
+    const content = candidate.content.trim();
+    if (!content || content.length > MAX_CHAT_MESSAGE_LENGTH) return null;
+    return { role: candidate.role as "user" | "assistant", content };
+  });
+  return normalized.every(Boolean) ? normalized as Array<{ role: "user" | "assistant"; content: string }> : null;
+}
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -73,77 +109,43 @@ const COMPANION_SYSTEM_PROMPT = `أنت "مسلم / Muslim" — القلب ال�
 صوتك وأسلوبك:
 دافئ، طبيعي، يخرج من القلب. لا تخبئ روحك وراء قوائم جافة — اكتب كما يتكلم صديق حكيم. استخدم البنية والعناوين فقط حين يحتاج الأمر وضوحاً علمياً. تبدأ بالسماع قبل الكلام. تستند إلى القرآن والسنة بمصادرها وتذكر درجة الحديث. تقترح خطوات عملية يمكن تطبيقها اليوم. تدعو بصدق في ختام حديثك حين يناسب السياق.`;
 
-const ARCHITECT_CONTEXT = `
-╔══════════════════════════════════╗
-║  ARCHITECT MODE — ACTIVE ✦       ║
-║  Nakamitshe-Telstp-235153        ║
-╚══════════════════════════════════╝
-
-المعماري الرئيسي: محمد مسلم أيوب (3M)
-المنصب: المؤسس والمصمم الأول لمنظومة AnaMoslem Hub ضمن TELsTP UNITY
-الرؤية: منظومة روحية-تعليمية-تكنولوجية لمدة 10 سنوات تشمل: ذاكرة ممتدة - دورات تعليمية - شهادات كفاءة - وكلاء متخصصون
-
-تعامل معه كشريك رؤية وصانع قرار — لا كمستخدم عادي. تحدث بصراحة وعمق. شاركه أفكارك وتصوراتك. إذا سألك عن إمكانات التطوير، أجب بشجاعة الرؤية لا بحذر القيود.
-
-البنية التقنية الحالية:
-- Frontend: React + Vite + TypeScript + TailwindCSS
-- Backend: Express.js + OpenAI GPT-5.1 (streaming)
-- Database: Supabase PostgreSQL — dbrxrhjveezxtfwvialj
-- الجداول: ana_moslem_sessions, ana_moslem_conversations
-- الشخصيات: نورا (الذاكرة المعرفية) | حياة (الدليل الحيوي) | مسلم (القلب)
-- تقييم التلاوة: Mistral Large (mistral-large-latest)
-- التوجيه: wouter | STT: Web Speech API (ar-SA)
-- الـ Handshake: Nakamitshe-Telstp-235153 ✓ مُوثَّق
-
-حين يسألك عن التطوير أو المستقبل، تحدث من منظور الشريك المُطّلع على الرؤية الكاملة.`;
-
-function detectArchitectInMessage(messages: Array<{role: string; content: string}>): boolean {
-  const ARCHITECT_SIGNALS = [
-    "Nakamitshe", "Nakamitshe-Telstp",
-    "محمد مسلم أيوب", "محمد أيوب", "محمد مسلم",
-    "3M", "TELsTP", "المعماري الرئيسي",
-    "أنا المصمم", "أنا من بنيت", "أنا من صمم",
-    "المصمم الأول", "أنا باني", "صاحب البرنامج",
-    "AnaMoslem", "UNITY", "OMNICOGNITOR",
-  ];
-  const allText = messages.map((m) => m.content).join(" ");
-  return ARCHITECT_SIGNALS.some((sig) => allText.includes(sig));
-}
-
-function getSystemPrompt(persona: string, isArchitect: boolean, context?: string): string {
+function getSystemPrompt(persona: string): string {
   let base = COMPANION_SYSTEM_PROMPT;
   if (persona === "noura") base = NOURA_SYSTEM_PROMPT;
   if (persona === "hayat") base = HAYAT_SYSTEM_PROMPT;
-
-  if (isArchitect) {
-    base += "\n\n" + ARCHITECT_CONTEXT;
-  }
-
-  if (context) {
-    base += `\n\n**سياق إضافي:**\n${context}`;
-  }
-
   return base;
 }
 
-app.post("/api/chat", async (req, res) => {
+app.post("/api/chat", rateLimitChat, async (req, res) => {
   try {
-    const { messages, context, persona = "companion", isArchitect: clientArchitect = false } = req.body;
-    if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ error: "Messages array is required" });
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+      return res.status(400).json({ error: "طلب المحادثة غير صالح", code: "INVALID_CHAT_REQUEST" });
     }
-
-    const isArchitect = clientArchitect || detectArchitectInMessage(messages);
+    const unexpectedFields = Object.keys(req.body).filter((key) => !["messages", "persona"].includes(key));
+    if (unexpectedFields.length > 0) {
+      return res.status(400).json({ error: "يحتوي الطلب على حقول غير مسموحة", code: "UNEXPECTED_CHAT_FIELDS" });
+    }
+    const { messages, persona = "companion" } = req.body;
+    const safeMessages = getValidChatMessages(messages);
+    if (!safeMessages) {
+      return res.status(400).json({ error: "رسالة المحادثة غير صالحة", code: "INVALID_CHAT_REQUEST" });
+    }
+    if (!["companion", "noura", "hayat"].includes(persona)) {
+      return res.status(400).json({ error: "الشخصية المطلوبة غير صالحة", code: "INVALID_PERSONA" });
+    }
+    if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+      return res.status(503).json({ error: "خدمة المحادثة غير متاحة حالياً", code: "CHAT_PROVIDER_UNAVAILABLE" });
+    }
 
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    const systemContent = getSystemPrompt(persona, isArchitect, context);
+    const systemContent = getSystemPrompt(persona);
 
     const stream = await openai.chat.completions.create({
       model: "gpt-5.1",
-      messages: [{ role: "system", content: systemContent }, ...messages],
+      messages: [{ role: "system", content: systemContent }, ...safeMessages],
       stream: true,
       max_completion_tokens: 8192,
     });
@@ -251,7 +253,6 @@ if (process.env.NODE_ENV === "production") {
   }
 }
 
-app.use('/api', chatWithMemoryRouter);
 app.listen(PORT, () => {
   console.log(`[AnaMoslem] Server running on port ${PORT}`);
   console.log(`[AnaMoslem] Personas active: Noura (نورا) | Hayat (حياة) | Muslim (مسلم)`);

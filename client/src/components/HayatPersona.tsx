@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Send, X, Mic, MicOff, Sparkles, Volume2, VolumeX } from "lucide-react";
-import { getOrCreateSessionId, isArchitectSession, detectHandshake, activateArchitectMode } from "../lib/session";
-import { saveMessage, loadConversation } from "../lib/supabase";
-import type { ConversationMessage } from "../lib/supabase";
 
 interface MiniMessage {
   role: "user" | "assistant";
@@ -11,7 +8,7 @@ interface MiniMessage {
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
 let voicesReady = false;
-const HAYAT_CACHE_KEY = "anamoslem_hayat_cache";
+const MAX_MESSAGE_LENGTH = 4000;
 
 function loadVoices() {
   if (!("speechSynthesis" in window)) return [];
@@ -28,19 +25,8 @@ function pickVoice() {
   return femaleish[0] || arabic[0] || voices[0] || null;
 }
 
-function loadCachedMessages(): MiniMessage[] | null {
-  try {
-    const raw = localStorage.getItem(HAYAT_CACHE_KEY);
-    return raw ? (JSON.parse(raw) as MiniMessage[]) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveCachedMessages(messages: MiniMessage[]) {
-  try {
-    localStorage.setItem(HAYAT_CACHE_KEY, JSON.stringify(messages));
-  } catch {}
+function confirmVoiceConsent(): boolean {
+  return window.confirm("سيطلب المتصفح إذن الميكروفون لهذه المحادثة فقط. يمكنك المتابعة أو الإلغاء.");
 }
 
 export default function HayatPersona() {
@@ -56,7 +42,6 @@ export default function HayatPersona() {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [interimText, setInterimText] = useState("");
-  const [isArchitect, setIsArchitect] = useState(false);
   const [pulse, setPulse] = useState(false);
   const [position, setPosition] = useState({ bottom: 24, right: 24 });
   const [promptSentAt, setPromptSentAt] = useState<string | null>(null);
@@ -64,13 +49,8 @@ export default function HayatPersona() {
   const [speaking, setSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const sessionId = getOrCreateSessionId();
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
-
-  useEffect(() => {
-    setIsArchitect(isArchitectSession());
-  }, []);
 
   useEffect(() => {
     if (!("speechSynthesis" in window)) return;
@@ -124,24 +104,8 @@ export default function HayatPersona() {
     setPromptSentAt(slot);
   }, [isOpen, messages.length, promptSentAt]);
 
-  useEffect(() => {
-    if (isOpen && messages.length === 1) {
-      const cached = loadCachedMessages();
-      if (cached?.length) {
-        setMessages(cached);
-        return;
-      }
-      loadConversation(sessionId, "hayat", 20).then((saved) => {
-        if (saved.length > 0) {
-          const restored = saved.map((m) => ({ role: m.role, content: m.content }));
-          setMessages(restored);
-          saveCachedMessages(restored);
-        }
-      });
-    }
-  }, [isOpen]);
-
   const startListening = () => {
+    if (!confirmVoiceConsent()) return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
@@ -201,30 +165,16 @@ export default function HayatPersona() {
   };
 
   const sendMessage = async () => {
-    const text = (input + interimText).trim();
+    const text = (input + interimText).trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || isLoading) return;
-
-    if (detectHandshake(text)) {
-      activateArchitectMode();
-      setIsArchitect(true);
-    }
 
     const userMsg: MiniMessage = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
-    saveCachedMessages(newMessages);
     setInput("");
     setInterimText("");
     setIsLoading(true);
     stopListening();
-
-    await saveMessage({
-      session_id: sessionId,
-      persona: "hayat",
-      role: "user",
-      content: text,
-      is_architect_context: isArchitect,
-    } as ConversationMessage);
 
     const assistantPlaceholder: MiniMessage = { role: "assistant", content: "" };
     setMessages((prev) => [...prev, assistantPlaceholder]);
@@ -234,11 +184,12 @@ export default function HayatPersona() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: newMessages.slice(-12).map((m) => ({ role: m.role, content: m.content })),
           persona: "hayat",
-          isArchitect,
         }),
       });
+
+      if (!response.ok) throw new Error("فشل الاتصال");
 
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
@@ -268,16 +219,6 @@ export default function HayatPersona() {
         }
       }
 
-      if (fullResponse) {
-        saveCachedMessages([...newMessages, { role: "assistant", content: fullResponse }]);
-        await saveMessage({
-          session_id: sessionId,
-          persona: "hayat",
-          role: "assistant",
-          content: fullResponse,
-          is_architect_context: isArchitect,
-        } as ConversationMessage);
-      }
     } catch (e) {
       setMessages((prev) => {
         const updated = [...prev];
@@ -373,7 +314,7 @@ export default function HayatPersona() {
               </div>
               <div>
                 <div style={{ color: "#4ade80", fontWeight: 700, fontSize: 14, direction: "rtl" }}>
-                  حياة {isArchitect && <span style={{ color: "#fbbf24", fontSize: 10 }}>✦ مهندس</span>}
+                  حياة
                 </div>
                 <div style={{ color: "rgba(134,239,172,0.5)", fontSize: 10 }}>المرافقة الروحية</div>
               </div>
@@ -528,6 +469,7 @@ export default function HayatPersona() {
               placeholder="اكتبي لحياة..."
               dir="rtl"
               disabled={isLoading}
+              maxLength={MAX_MESSAGE_LENGTH}
               style={{
                 flex: 1,
                 background: "rgba(134,239,172,0.07)",
@@ -633,28 +575,6 @@ export default function HayatPersona() {
         title="حياة — المرافقة الروحية"
       >
         🌿
-        {isArchitect && (
-          <span
-            style={{
-              position: "absolute",
-              top: -2,
-              left: -2,
-              width: 16,
-              height: 16,
-              borderRadius: "50%",
-              background: "#fbbf24",
-              border: "2px solid #0f1e15",
-              fontSize: 8,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#000",
-              fontWeight: 700,
-            }}
-          >
-            ✦
-          </span>
-        )}
       </button>
     </div>
   );

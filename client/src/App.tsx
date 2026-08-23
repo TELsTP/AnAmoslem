@@ -9,14 +9,13 @@ import AdhkarPage from "./pages/AdhkarPage";
 import LibraryPage from "./pages/LibraryPage";
 import HayatPersona from "./components/HayatPersona";
 import AuthPage from "./pages/AuthPage";
-import { hasUserProfile } from "./lib/user-session";
 
 export default function App() {
   return (
     <>
       <Switch>
         <Route path="/login" component={AuthPage} />
-        <Route path="/" component={hasUserProfile() ? Home : AuthPage} />
+        <Route path="/" component={Home} />
         <Route path="/companion" component={CompanionPage} />
         <Route path="/quran" component={QuranPage} />
         <Route path="/paradise" component={ParadisePage} />

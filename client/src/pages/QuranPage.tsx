@@ -39,6 +39,10 @@ function normalizeArabic(s: string) {
     .trim();
 }
 
+function confirmVoiceConsent(): boolean {
+  return window.confirm("سيطلب المتصفح إذن الميكروفون لهذه الجلسة فقط. يمكنك المتابعة أو الإلغاء.");
+}
+
 function loadReadSurahs(): Set<number> {
   try {
     const s = localStorage.getItem("quran_read_surahs");
@@ -146,6 +150,7 @@ function VoiceCalibrationModal({
   }, [exactMatches, wordIdx]);
 
   const listenForWord = useCallback(() => {
+    if (!confirmVoiceConsent()) return;
     if (!SpeechRec) return;
     const rec = new SpeechRec();
     rec.lang = 'ar-SA';
@@ -394,6 +399,7 @@ function RecitationMode({ surah, onClose, isRegistered = false }: { surah: Surah
   }, [revealWord, total]);
 
   const startListening = useCallback(() => {
+    if (!confirmVoiceConsent()) return;
     if (!SpeechRec) { setNoMic(true); return; }
     const rec = new SpeechRec();
     rec.lang = "ar-SA";

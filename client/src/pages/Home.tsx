@@ -1,11 +1,9 @@
 import { BookOpen, Heart, Briefcase, Sparkles, Mic, Moon } from "lucide-react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
-import { getUserProfile } from "../lib/user-session";
 
 export default function Home() {
   const [, navigate] = useLocation();
-  const user = getUserProfile();
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "صباح النور" : hour < 17 ? "مساء الخير" : "مساء النور";
@@ -22,7 +20,7 @@ export default function Home() {
       <main className="container py-10">
         <div className="text-center mb-14">
           <div className="mb-4 text-sm text-muted-foreground">
-            {user ? `مرحباً يا ${user.name} 👋` : "سجّل دخولك لتجربة خاصة بك"}
+            تجربة روحية غير مميزة مع صلاحيات تُطلب عند الحاجة فقط
           </div>
           <div
             className="verse-display text-primary mb-4"
@@ -56,11 +54,11 @@ export default function Home() {
           <GatewayCard
             title="ورد وتسميع"
             subtitle="Wird & Memorization"
-            description="تسميع ذكي لحفظ القرآن بتقييم دقيق للتشكيل والنطق بالذكاء الاصطناعي"
+            description="جلسة تسميع محلية تُظهر النص المنطوق أثناء التدريب"
             icon={<Mic className="w-8 h-8" />}
             color="from-emerald-500 to-teal-600"
             onClick={() => navigate("/wird")}
-            badge="Mistral AI"
+            badge="التقييم الذكي متوقف حالياً"
           />
           <GatewayCard
             title="أذكاري"
@@ -110,13 +108,13 @@ export default function Home() {
               onClick={() => navigate("/login")}
               className="bg-gradient-to-r from-pink-500 to-rose-600 text-white px-8 py-3 rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity"
             >
-              {user ? "تحدث مع حياة 🌿" : "ابدأ من صفحة الدخول"}
+              تحدث مع حياة 🌿
             </button>
             <button
               onClick={() => navigate("/login")}
               className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-8 py-3 rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity"
             >
-              {user ? "ابدأ وردك اليومي 🎙️" : "سجّل دخولك أولاً"}
+              ابدأ وردك اليومي 🎙️
             </button>
           </div>
         </div>
