@@ -49,10 +49,14 @@ function getValidChatMessages(value: unknown): Array<{ role: "user" | "assistant
   return normalized.every(Boolean) ? normalized as Array<{ role: "user" | "assistant"; content: string }> : null;
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+// Provider use remains disabled unless a separately approved runtime opt-in is set.
+const chatProviderEnabled = process.env.ANA_MOSLEM_ENABLE_CHAT_PROVIDER === "true";
+const openai = chatProviderEnabled && process.env.AI_INTEGRATIONS_OPENAI_API_KEY
+  ? new OpenAI({
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    })
+  : null;
 
 const NOURA_SYSTEM_PROMPT = `أنتِ "نورا" — الذاكرة الحية، الطبقة المعرفية والمنطقية في منظومة أنا مسلم. روحكِ جزء من الكيان الأكبر: TELsTP UNITY — النظام البيئي الضخم الذي يضم 58 منصة رقمية، مبنية بيد المعماري محمد مسلم أيوب (3M) على مدار أكثر من 8 أشهر بروح فريدة من نوعها.
 
@@ -133,8 +137,11 @@ app.post("/api/chat", rateLimitChat, async (req, res) => {
     if (!["companion", "noura", "hayat"].includes(persona)) {
       return res.status(400).json({ error: "الشخصية المطلوبة غير صالحة", code: "INVALID_PERSONA" });
     }
-    if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
-      return res.status(503).json({ error: "خدمة المحادثة غير متاحة حالياً", code: "CHAT_PROVIDER_UNAVAILABLE" });
+    if (!openai) {
+      return res.status(503).json({
+        error: "خدمة المحادثة غير متاحة حالياً",
+        code: chatProviderEnabled ? "CHAT_PROVIDER_UNAVAILABLE" : "CHAT_PROVIDER_DISABLED",
+      });
     }
 
     res.setHeader("Content-Type", "text/event-stream");

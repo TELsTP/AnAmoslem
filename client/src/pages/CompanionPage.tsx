@@ -35,8 +35,8 @@ function pickVoice(persona: Persona) {
   return maleish[0] || arabic.find((v) => !femaleish.includes(v)) || arabic[0] || voices[0] || null;
 }
 
-function speakArabic(text: string, persona: Persona) {
-  if (!("speechSynthesis" in window)) return;
+function speakArabic(text: string, persona: Persona): SpeechSynthesisUtterance | null {
+  if (!("speechSynthesis" in window)) return null;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "ar-EG";
@@ -46,6 +46,7 @@ function speakArabic(text: string, persona: Persona) {
   const voice = pickVoice(persona);
   if (voice) utterance.voice = voice;
   window.speechSynthesis.speak(utterance);
+  return utterance;
 }
 
 function confirmVoiceConsent(): boolean {
@@ -177,11 +178,13 @@ export default function CompanionPage() {
     if (message.role !== "assistant") return;
     if (!voiceEnabled) return;
     setSpeakingId(message.id);
-    speakArabic(message.content, activePersona);
+    const utterance = speakArabic(message.content, activePersona);
     const clear = () => setSpeakingId((curr) => (curr === message.id ? null : curr));
     setTimeout(clear, Math.max(1200, message.content.length * 35));
-    window.speechSynthesis.onend = clear;
-    window.speechSynthesis.oncancel = clear;
+    if (utterance) {
+      utterance.onend = clear;
+      utterance.onerror = clear;
+    }
   };
 
   useEffect(() => {
@@ -358,7 +361,7 @@ export default function CompanionPage() {
   };
 
   const clearConversation = () => {
-    const cleared = [
+    const cleared: Message[] = [
       { id: `clear-${Date.now()}`, role: "assistant", content: PERSONA_CONFIG[activePersona].welcome },
     ];
     setMessages(cleared);
