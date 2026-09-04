@@ -3,6 +3,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Send, Mic, MicOff, Brain, Leaf, Heart, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { useLocation } from "wouter";
+import {
+  containsArchitectHandshake,
+  getOrCreateSessionId,
+  isArchitectSession,
+  markArchitectSession,
+} from "../lib/architect";
 
 type Persona = "noura" | "hayat" | "companion";
 
@@ -107,6 +113,7 @@ const PERSONA_CONFIG = {
 export default function CompanionPage() {
   const [, navigate] = useLocation();
   const [activePersona, setActivePersona] = useState<Persona>("companion");
+  const [architectActive, setArchitectActive] = useState(() => isArchitectSession());
   const [messagesByPersona, setMessagesByPersona] = useState<Record<Persona, Message[]>>({
     noura: [{ id: "n-init", role: "assistant", content: PERSONA_CONFIG.noura.welcome }],
     hayat: [{ id: "h-init", role: "assistant", content: PERSONA_CONFIG.hayat.welcome }],
@@ -287,6 +294,10 @@ export default function CompanionPage() {
   const handleSendMessage = async () => {
     const text = (input + interimText).trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || isLoading) return;
+    if (containsArchitectHandshake(text)) {
+      markArchitectSession();
+      setArchitectActive(true);
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -311,6 +322,7 @@ export default function CompanionPage() {
         body: JSON.stringify({
           messages: currentMessages.slice(-12).map((m) => ({ role: m.role, content: m.content })),
           persona: activePersona,
+          sessionId: getOrCreateSessionId(),
         }),
       });
 
@@ -389,6 +401,11 @@ export default function CompanionPage() {
               <h1 className={`text-lg font-bold ${persona.textColor}`}>{persona.nameAr}</h1>
               <p className="text-xs text-muted-foreground">{persona.subtitle}</p>
             </div>
+            {architectActive && (
+              <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-1 text-xs text-amber-300">
+                ✦ وضع المعماري
+              </span>
+            )}
           </div>
           <button
             onClick={clearConversation}

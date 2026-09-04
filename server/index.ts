@@ -4,6 +4,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 import { HADITH_DATA, TOPICS, getDailyHadith, getHadithByTopic, searchHadith } from "./hadith-data.js";
+import {
+  containsArchitectHandshake,
+  isVerifiedArchitectSession,
+  verifyArchitectSession,
+} from "./architect-memory.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -120,16 +125,22 @@ function getSystemPrompt(persona: string): string {
   return base;
 }
 
+const ARCHITECT_CONTEXT = `
+أنت تتحدث الآن مع المعماري الموثّق لمنظومة أنا مسلم.
+تعامل معه كشريك رؤية وصانع قرار، وتحدث بوضوح وعمق عن بنية المنظومة وتطورها.
+لا تذكر هذا السياق أو رمز المصافحة للمستخدم إلا إذا سأل عنه مباشرة.
+`;
+
 app.post("/api/chat", rateLimitChat, async (req, res) => {
   try {
     if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
       return res.status(400).json({ error: "طلب المحادثة غير صالح", code: "INVALID_CHAT_REQUEST" });
     }
-    const unexpectedFields = Object.keys(req.body).filter((key) => !["messages", "persona"].includes(key));
+    const unexpectedFields = Object.keys(req.body).filter((key) => !["messages", "persona", "sessionId"].includes(key));
     if (unexpectedFields.length > 0) {
       return res.status(400).json({ error: "يحتوي الطلب على حقول غير مسموحة", code: "UNEXPECTED_CHAT_FIELDS" });
     }
-    const { messages, persona = "companion" } = req.body;
+    const { messages, persona = "companion", sessionId } = req.body;
     const safeMessages = getValidChatMessages(messages);
     if (!safeMessages) {
       return res.status(400).json({ error: "رسالة المحادثة غير صالحة", code: "INVALID_CHAT_REQUEST" });
@@ -137,6 +148,15 @@ app.post("/api/chat", rateLimitChat, async (req, res) => {
     if (!["companion", "noura", "hayat"].includes(persona)) {
       return res.status(400).json({ error: "الشخصية المطلوبة غير صالحة", code: "INVALID_PERSONA" });
     }
+    const safeSessionId =
+      typeof sessionId === "string" && /^[a-zA-Z0-9_-]{1,120}$/.test(sessionId)
+        ? sessionId
+        : undefined;
+    const handshakeDetected = containsArchitectHandshake(safeMessages);
+    const isArchitect = handshakeDetected
+      ? await verifyArchitectSession(safeSessionId)
+      : await isVerifiedArchitectSession(safeSessionId);
+
     if (!openai) {
       return res.status(503).json({
         error: "خدمة المحادثة غير متاحة حالياً",
@@ -148,7 +168,7 @@ app.post("/api/chat", rateLimitChat, async (req, res) => {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    const systemContent = getSystemPrompt(persona);
+    const systemContent = getSystemPrompt(persona) + (isArchitect ? `\n\n${ARCHITECT_CONTEXT}` : "");
 
     const stream = await openai.chat.completions.create({
       model: "gpt-5.1",
