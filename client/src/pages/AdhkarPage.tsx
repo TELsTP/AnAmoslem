@@ -142,7 +142,7 @@ export default function AdhkarPage() {
                 <div
                   key={i}
                   onClick={() => toggleCompleted(i)}
-                  className={`bg-card border rounded-2xl p-5 cursor-pointer transition-all hover:shadow-md ${
+                  className={`islamic-card bg-card border rounded-2xl p-5 cursor-pointer transition-all hover:shadow-md ${
                     completed.has(i)
                       ? "border-emerald-500/40 bg-emerald-500/5 opacity-70"
                       : "border-border hover:border-amber-500/30"

@@ -1,4 +1,4 @@
-import { BookOpen, Heart, Briefcase, Sparkles, Mic, Moon } from "lucide-react";
+import { ArrowUpLeft, BookOpen, Heart, Sparkles, Mic, Moon } from "lucide-react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 
@@ -36,60 +36,67 @@ export default function Home() {
           <GatewayCard
             title="رفيقي الروحي"
             subtitle="AI Companion — Noura & Hayat"
-            description="حوار إسلامي ذكي مع نورا ذاكرة المعرفة وحياة دليلة الروح"
+            description="مساحة حوار هادئة تجمع ذاكرة نورا وبصيرة حياة في لحظتك اليومية"
             icon={<Heart className="w-8 h-8" />}
-            color="from-pink-500 to-rose-600"
+            image="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=85"
+            visualCue="جلسة تأملية"
             onClick={() => navigate("/companion")}
             featured
-            badge="نورا + حياة ✨"
+            badge="نورا + حياة"
           />
           <GatewayCard
             title="قراني"
             subtitle="Quranic Learning"
-            description="تلاوتي وحفظي وتطبيقي للقرآن الكريم"
+            description="تلاوة مركّزة، حفظ متدرّج، ومساحة تربط الآية بتطبيقها"
             icon={<BookOpen className="w-8 h-8" />}
-            color="from-blue-500 to-blue-600"
+            image="https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=85"
+            visualCue="ضوء المعرفة"
             onClick={() => navigate("/quran")}
           />
           <GatewayCard
             title="ورد وتسميع"
             subtitle="Wird & Memorization"
-            description="جلسة تسميع محلية تُظهر النص المنطوق أثناء التدريب"
+            description="تدرّب بصوتك، راقب تقدّمك، وابنِ عادة تسميع ثابتة بلا تشتيت"
             icon={<Mic className="w-8 h-8" />}
-            color="from-emerald-500 to-teal-600"
+            image="https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1200&q=85"
+            visualCue="إيقاع يومي"
             onClick={() => navigate("/wird")}
             badge="التقييم الذكي متوقف حالياً"
           />
           <GatewayCard
             title="أذكاري"
             subtitle="Daily Adhkar & Tasbih"
-            description="أذكار الصباح والمساء مع مسبحة رقمية وتتبع يومي"
+            description="روتين صباحي ومسائي واضح مع مسبحة رقمية وإشارة تقدّم فورية"
             icon={<Moon className="w-8 h-8" />}
-            color="from-amber-500 to-orange-600"
+            image="https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1200&q=85"
+            visualCue="هدوء متصل"
             onClick={() => navigate("/adhkar")}
           />
           <GatewayCard
             title="جنتي"
             subtitle="My Paradise"
-            description="بستاني وقصري وحسناتي وسيئاتي"
+            description="لوحة شخصية تحوّل الأعمال الصغيرة إلى أثر مرئي في رحلتك"
             icon={<Sparkles className="w-8 h-8" />}
-            color="from-green-500 to-green-600"
+            image="https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=1200&q=85"
+            visualCue="أثر يتنامى"
             onClick={() => navigate("/paradise")}
           />
           <GatewayCard
             title="سنة رسولي"
             subtitle="Prophetic Tradition"
-            description="أحاديث نبوية مختارة مع التفسير والتطبيق"
+            description="حديث موثوق يُقرأ بفهم، ثم يتحول إلى معنى قريب من حياتك"
             icon={<Heart className="w-8 h-8" />}
-            color="from-rose-500 to-rose-600"
+            image="https://images.unsplash.com/photo-1490730141103-6cac27aaab94?auto=format&fit=crop&w=1200&q=85"
+            visualCue="حكمة قريبة"
             onClick={() => navigate("/sunnah")}
           />
           <GatewayCard
             title="المكتبة"
             subtitle="Islamic Library"
-            description="كتب ومراجع وشروح وتفاسير وسيرة وحديث في مكان واحد"
+            description="مراجع مرتّبة وشروح قابلة للبحث لتبقى رحلة التعلّم في متناولك"
             icon={<BookOpen className="w-8 h-8" />}
-            color="from-slate-500 to-slate-600"
+            image="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=1200&q=85"
+            visualCue="رفوف مفتوحة"
             onClick={() => navigate("/library")}
           />
         </div>
@@ -128,38 +135,45 @@ interface GatewayCardProps {
   subtitle: string;
   description: string;
   icon: React.ReactNode;
-  color: string;
+  image: string;
+  visualCue: string;
   onClick: () => void;
   featured?: boolean;
   badge?: string;
   comingSoon?: boolean;
 }
 
-function GatewayCard({ title, subtitle, description, icon, color, onClick, featured, badge, comingSoon }: GatewayCardProps) {
+function GatewayCard({ title, subtitle, description, icon, image, visualCue, onClick, featured, badge, comingSoon }: GatewayCardProps) {
   return (
     <Card
-      className={`islamic-card cursor-pointer transition-all hover:scale-105 hover:shadow-lg relative ${
+      className={`photo-card stagger-reveal cursor-pointer p-0 ${
         featured ? "ring-2 ring-pink-400/50" : ""
       } ${comingSoon ? "opacity-60" : ""}`}
       onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      style={{ "--card-image": `url("${image}")` } as React.CSSProperties}
     >
-      {comingSoon && (
-        <div className="absolute top-3 left-3 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
-          قريباً
-        </div>
-      )}
-      <div className={`bg-gradient-to-br ${color} rounded-lg p-4 mb-4 w-fit`}>
-        <div className="text-white">{icon}</div>
-      </div>
-      <div dir="rtl">
-        <h3 className="text-2xl font-bold text-primary mb-1">{title}</h3>
-        <p className="text-sm text-muted-foreground mb-3">{subtitle}</p>
-        <p className="text-sm text-foreground">{description}</p>
-        {badge && (
-          <span className="inline-block mt-3 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-full">
-            {badge}
+      <div className="photo-card__content p-6" dir="rtl">
+        <div className="flex items-center justify-between gap-3 mb-5">
+          <span className="photo-card__cue">
+            <span className="text-sm">{icon}</span>
+            {visualCue}
           </span>
-        )}
+          <span className="photo-card__arrow" aria-hidden="true">
+            <ArrowUpLeft className="w-4 h-4" />
+          </span>
+        </div>
+        <h3 className="text-2xl font-bold text-white mb-1">{title}</h3>
+        <p className="text-sm text-cyan-50/75 mb-3">{subtitle}</p>
+        <p className="text-sm leading-7 text-white/90">{description}</p>
+        {badge && <span className="mt-4 inline-flex w-fit rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/85 backdrop-blur">{badge}</span>}
       </div>
     </Card>
   );

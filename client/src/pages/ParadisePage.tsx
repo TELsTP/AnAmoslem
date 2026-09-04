@@ -22,7 +22,7 @@ export default function ParadisePage() {
       </header>
 
       <main className="container py-8" dir="rtl">
-        <div className="text-center mb-10 bg-gradient-to-r from-green-500/10 to-green-600/10 rounded-xl p-8 border border-green-500/20">
+        <div className="islamic-card text-center mb-10 bg-gradient-to-r from-green-500/10 to-green-600/10 rounded-xl p-8 border border-green-500/20">
           <div className="text-6xl mb-4">🏡</div>
           <h2 className="text-2xl font-bold text-primary mb-2">قصرك في الجنة</h2>
           <p className="text-muted-foreground">ابنِ قصرك من خلال أعمالك الصالحة</p>
