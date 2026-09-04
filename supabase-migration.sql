@@ -21,6 +21,11 @@ CREATE TABLE IF NOT EXISTS public.ana_moslem_conversations (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.ana_moslem_sessions
+  ADD COLUMN IF NOT EXISTS user_id TEXT;
+ALTER TABLE public.ana_moslem_conversations
+  ADD COLUMN IF NOT EXISTS user_id TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_conversations_session ON public.ana_moslem_conversations(session_id, persona, created_at);
 CREATE INDEX IF NOT EXISTS idx_conversations_user_session ON public.ana_moslem_conversations(user_id, session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON public.ana_moslem_sessions(user_id, last_active_at);
