@@ -1,6 +1,7 @@
 import { ArrowUpLeft, BookOpen, Heart, Sparkles, Mic, Moon } from "lucide-react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
+import { Show, useClerk, useUser } from "@clerk/react";
 
 export default function Home() {
   const [, navigate] = useLocation();
@@ -12,8 +13,21 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background">
       <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur z-50">
         <div className="container flex flex-row-reverse items-center justify-between h-16">
-          <div className="text-2xl font-bold text-primary">أنا مسلم</div>
-          <div className="text-sm text-muted-foreground">{greeting} 🌙</div>
+            <div className="text-2xl font-bold text-primary">أنا مسلم</div>
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-muted-foreground">{greeting}</div>
+              <Show when="signed-out">
+                <button onClick={() => navigate("/sign-in")} className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
+                  تسجيل الدخول
+                </button>
+                <button onClick={() => navigate("/sign-up")} className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors">
+                  إنشاء حساب
+                </button>
+              </Show>
+              <Show when="signed-in">
+                <HomeUserActions />
+              </Show>
+            </div>
         </div>
       </header>
 
@@ -112,13 +126,13 @@ export default function Home() {
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/sign-in")}
               className="bg-gradient-to-r from-pink-500 to-rose-600 text-white px-8 py-3 rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity"
             >
               تحدث مع حياة 🌿
             </button>
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/sign-up")}
               className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-8 py-3 rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity"
             >
               ابدأ وردك اليومي 🎙️
@@ -126,6 +140,25 @@ export default function Home() {
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+function HomeUserActions() {
+  const { user } = useUser();
+  const { signOut } = useClerk();
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="hidden sm:inline text-sm font-medium text-foreground">
+        {user?.firstName || user?.emailAddresses[0]?.emailAddress}
+      </span>
+      <button
+        onClick={() => signOut({ redirectUrl: "/" })}
+        className="rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+      >
+        تسجيل الخروج
+      </button>
     </div>
   );
 }

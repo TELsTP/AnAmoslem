@@ -1,5 +1,8 @@
 import express from "express";
 import OpenAI from "openai";
+import cors from "cors";
+import { clerkMiddleware, getAuth } from "@clerk/express";
+import { publishableKeyFromHost } from "@clerk/shared/keys";
 import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
@@ -9,12 +12,40 @@ import {
   isVerifiedArchitectSession,
   verifyArchitectSession,
 } from "./architect-memory.js";
+import {
+  CLERK_PROXY_PATH,
+  clerkProxyMiddleware,
+  getClerkProxyHost,
+} from "./middlewares/clerkProxyMiddleware.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+app.use(cors({ credentials: true, origin: true }));
+app.use(
+  clerkMiddleware((req) => ({
+    publishableKey: publishableKeyFromHost(
+      getClerkProxyHost(req) ?? "",
+      process.env.CLERK_PUBLISHABLE_KEY,
+    ),
+  })),
+);
 app.use(express.json({ limit: "64kb" }));
+
+function requireAuth(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
+) {
+  const auth = getAuth(req);
+  const userId = auth?.sessionClaims?.userId || auth?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: "يجب تسجيل الدخول أولاً", code: "UNAUTHORIZED" });
+  }
+  next();
+}
 
 const MAX_CHAT_MESSAGES = 24;
 const MAX_CHAT_MESSAGE_LENGTH = 4000;
@@ -131,7 +162,7 @@ const ARCHITECT_CONTEXT = `
 لا تذكر هذا السياق أو رمز المصافحة للمستخدم إلا إذا سأل عنه مباشرة.
 `;
 
-app.post("/api/chat", rateLimitChat, async (req, res) => {
+app.post("/api/chat", requireAuth, rateLimitChat, async (req, res) => {
   try {
     if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
       return res.status(400).json({ error: "طلب المحادثة غير صالح", code: "INVALID_CHAT_REQUEST" });
