@@ -4,10 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Send, Mic, MicOff, Brain, Leaf, Heart, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { useLocation } from "wouter";
 import {
-  containsArchitectHandshake,
   getOrCreateSessionId,
-  isArchitectSession,
-  markArchitectSession,
 } from "../lib/architect";
 
 type Persona = "noura" | "hayat" | "companion";
@@ -113,7 +110,7 @@ const PERSONA_CONFIG = {
 export default function CompanionPage() {
   const [, navigate] = useLocation();
   const [activePersona, setActivePersona] = useState<Persona>("companion");
-  const [architectActive, setArchitectActive] = useState(() => isArchitectSession());
+  const [architectActive, setArchitectActive] = useState(false);
   const [messagesByPersona, setMessagesByPersona] = useState<Record<Persona, Message[]>>({
     noura: [{ id: "n-init", role: "assistant", content: PERSONA_CONFIG.noura.welcome }],
     hayat: [{ id: "h-init", role: "assistant", content: PERSONA_CONFIG.hayat.welcome }],
@@ -133,6 +130,7 @@ export default function CompanionPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const initializedRef = useRef(false);
+  const memoryLoadedRef = useRef(false);
   const persona = PERSONA_CONFIG[activePersona];
 
   const messages = messagesByPersona[activePersona];
@@ -171,6 +169,52 @@ export default function CompanionPage() {
         document.getElementById("send-btn")?.click();
       }, 400);
     }
+  }, []);
+
+  useEffect(() => {
+    if (memoryLoadedRef.current) return;
+    memoryLoadedRef.current = true;
+    const sessionId = getOrCreateSessionId();
+    let cancelled = false;
+
+    Promise.all([
+      fetch(`/api/account?sessionId=${encodeURIComponent(sessionId)}`),
+      fetch(`/api/conversation?sessionId=${encodeURIComponent(sessionId)}`),
+    ])
+      .then(async ([accountResponse, conversationResponse]) => {
+        if (cancelled) return;
+        if (accountResponse.ok) {
+          const account = await accountResponse.json();
+          setArchitectActive(Boolean(account.isArchitect));
+        }
+        if (conversationResponse.ok) {
+          const data = await conversationResponse.json();
+          const stored = data.messages as
+            | Partial<Record<Persona, Array<Message & { created_at?: string }>>>
+            | undefined;
+          if (!stored) return;
+          setMessagesByPersona((previous) => {
+            const next = { ...previous };
+            (["noura", "hayat", "companion"] as Persona[]).forEach((key) => {
+              const history = stored[key] || [];
+              if (!history.length) return;
+              next[key] = history.map((message, index) => ({
+                id: `memory-${key}-${index}-${message.created_at || index}`,
+                role: message.role,
+                content: message.content,
+              }));
+            });
+            return next;
+          });
+        }
+      })
+      .catch(() => {
+        // Supabase memory is optional; the local conversation remains usable.
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -294,11 +338,6 @@ export default function CompanionPage() {
   const handleSendMessage = async () => {
     const text = (input + interimText).trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || isLoading) return;
-    if (containsArchitectHandshake(text)) {
-      markArchitectSession();
-      setArchitectActive(true);
-    }
-
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -343,6 +382,10 @@ export default function CompanionPage() {
           if (!line.startsWith("data: ")) continue;
           try {
             const data = JSON.parse(line.slice(6));
+            if (data.meta) {
+              setArchitectActive(Boolean(data.architectActive));
+              continue;
+            }
             if (data.done) break;
             if (data.error) throw new Error(data.error);
             if (data.content) {
@@ -377,6 +420,10 @@ export default function CompanionPage() {
       { id: `clear-${Date.now()}`, role: "assistant", content: PERSONA_CONFIG[activePersona].welcome },
     ];
     setMessages(cleared);
+    void fetch(
+      `/api/conversation?sessionId=${encodeURIComponent(getOrCreateSessionId())}&persona=${activePersona}`,
+      { method: "DELETE" },
+    );
   };
 
   return (

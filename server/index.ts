@@ -9,9 +9,15 @@ import { existsSync } from "fs";
 import { HADITH_DATA, TOPICS, getDailyHadith, getHadithByTopic, searchHadith } from "./hadith-data.js";
 import {
   containsArchitectHandshake,
+  ensureUserProfile,
+  deleteConversation,
+  loadConversation,
+  loadRecentConversation,
   isVerifiedArchitectSession,
+  saveConversationMessage,
   verifyArchitectSession,
 } from "./architect-memory.js";
+import { NOURA_TELSTP_CONTEXT, UNITY_CONTEXT } from "./noura-knowledge.js";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -45,6 +51,18 @@ function requireAuth(
     return res.status(401).json({ error: "يجب تسجيل الدخول أولاً", code: "UNAUTHORIZED" });
   }
   next();
+}
+
+function getAuthenticatedUserId(req: express.Request): string | null {
+  const auth = getAuth(req);
+  const userId = auth?.sessionClaims?.userId || auth?.userId;
+  return typeof userId === "string" ? userId : null;
+}
+
+function getSafeSessionId(value: unknown): string | undefined {
+  return typeof value === "string" && /^[a-zA-Z0-9_-]{1,120}$/.test(value)
+    ? value
+    : undefined;
 }
 
 const MAX_CHAT_MESSAGES = 24;
@@ -156,6 +174,40 @@ function getSystemPrompt(persona: string): string {
   return base;
 }
 
+app.get("/api/account", requireAuth, async (req, res) => {
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return;
+  await ensureUserProfile(userId);
+  const sessionId = getSafeSessionId(req.query.sessionId);
+  res.json({
+    userId,
+    isArchitect: await isVerifiedArchitectSession(userId, sessionId),
+  });
+});
+
+app.get("/api/conversation", requireAuth, async (req, res) => {
+  const userId = getAuthenticatedUserId(req);
+  const sessionId = getSafeSessionId(req.query.sessionId);
+  if (!userId || !sessionId) {
+    return res.status(400).json({ error: "معرّف الجلسة غير صالح", code: "INVALID_SESSION" });
+  }
+  await ensureUserProfile(userId);
+  res.json({ messages: await loadConversation(userId, sessionId) });
+});
+
+app.delete("/api/conversation", requireAuth, async (req, res) => {
+  const userId = getAuthenticatedUserId(req);
+  const sessionId = getSafeSessionId(req.query.sessionId);
+  const persona = ["companion", "noura", "hayat"].includes(String(req.query.persona))
+    ? (String(req.query.persona) as "companion" | "noura" | "hayat")
+    : undefined;
+  if (!userId || !sessionId) {
+    return res.status(400).json({ error: "معرّف الجلسة غير صالح", code: "INVALID_SESSION" });
+  }
+  await deleteConversation(userId, sessionId, persona);
+  res.status(204).end();
+});
+
 const ARCHITECT_CONTEXT = `
 أنت تتحدث الآن مع المعماري الموثّق لمنظومة أنا مسلم.
 تعامل معه كشريك رؤية وصانع قرار، وتحدث بوضوح وعمق عن بنية المنظومة وتطورها.
@@ -164,6 +216,9 @@ const ARCHITECT_CONTEXT = `
 
 app.post("/api/chat", requireAuth, rateLimitChat, async (req, res) => {
   try {
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) return res.status(401).json({ error: "يجب تسجيل الدخول أولاً" });
+    await ensureUserProfile(userId);
     if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
       return res.status(400).json({ error: "طلب المحادثة غير صالح", code: "INVALID_CHAT_REQUEST" });
     }
@@ -179,14 +234,24 @@ app.post("/api/chat", requireAuth, rateLimitChat, async (req, res) => {
     if (!["companion", "noura", "hayat"].includes(persona)) {
       return res.status(400).json({ error: "الشخصية المطلوبة غير صالحة", code: "INVALID_PERSONA" });
     }
-    const safeSessionId =
-      typeof sessionId === "string" && /^[a-zA-Z0-9_-]{1,120}$/.test(sessionId)
-        ? sessionId
-        : undefined;
+    const safeSessionId = getSafeSessionId(sessionId);
     const handshakeDetected = containsArchitectHandshake(safeMessages);
     const isArchitect = handshakeDetected
-      ? await verifyArchitectSession(safeSessionId)
-      : await isVerifiedArchitectSession(safeSessionId);
+      ? await verifyArchitectSession(userId, safeSessionId)
+      : await isVerifiedArchitectSession(userId, safeSessionId);
+
+    const storedHistory = safeSessionId
+      ? await loadRecentConversation(userId, safeSessionId, 18)
+      : [];
+    const seenMessages = new Set<string>();
+    const modelMessages = [...storedHistory, ...safeMessages]
+      .filter((message) => {
+        const key = `${message.role}:${message.content}`;
+        if (seenMessages.has(key)) return false;
+        seenMessages.add(key);
+        return true;
+      })
+      .slice(-MAX_CHAT_MESSAGES);
 
     if (!openai) {
       return res.status(503).json({
@@ -199,24 +264,51 @@ app.post("/api/chat", requireAuth, rateLimitChat, async (req, res) => {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    const systemContent = getSystemPrompt(persona) + (isArchitect ? `\n\n${ARCHITECT_CONTEXT}` : "");
+    const systemContent =
+      getSystemPrompt(persona) +
+      `\n\n${UNITY_CONTEXT}\n${NOURA_TELSTP_CONTEXT}` +
+      (isArchitect ? `\n\n${ARCHITECT_CONTEXT}` : "");
+
+    const lastUserMessage = [...safeMessages].reverse().find((message) => message.role === "user");
+    if (safeSessionId && lastUserMessage) {
+      await saveConversationMessage(
+        userId,
+        safeSessionId,
+        persona as "companion" | "noura" | "hayat",
+        lastUserMessage,
+        isArchitect,
+      );
+    }
+
+    res.write(`data: ${JSON.stringify({ meta: true, architectActive: isArchitect })}\n\n`);
 
     const stream = await openai.chat.completions.create({
       model: "gpt-5.1",
-      messages: [{ role: "system", content: systemContent }, ...safeMessages],
+      messages: [{ role: "system", content: systemContent }, ...modelMessages],
       stream: true,
       max_completion_tokens: 8192,
     });
 
+    let fullResponse = "";
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || "";
       if (content) {
+        fullResponse += content;
         res.write(`data: ${JSON.stringify({ content })}\n\n`);
       }
     }
 
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
+    if (safeSessionId && fullResponse) {
+      await saveConversationMessage(
+        userId,
+        safeSessionId,
+        persona as "companion" | "noura" | "hayat",
+        { role: "assistant", content: fullResponse },
+        isArchitect,
+      );
+    }
   } catch (error) {
     console.error("Chat error:", error);
     if (res.headersSent) {
