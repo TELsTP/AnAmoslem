@@ -19,8 +19,8 @@ services:
       CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       SESSION_SECRET: ${SESSION_SECRET}
-      # Local Ollama defaults; replace AI_MODEL with the exact value from `ollama list`.
-      AI_MODEL: ${AI_MODEL:?Set AI_MODEL to the exact local Ollama model name}
+      # Confirmed local model on the hospital server.
+      AI_MODEL: ${AI_MODEL:-qwen2.5:3b}
       AI_INTEGRATIONS_OPENAI_API_KEY: ${AI_INTEGRATIONS_OPENAI_API_KEY:-ollama-local}
       AI_INTEGRATIONS_OPENAI_BASE_URL: ${AI_INTEGRATIONS_OPENAI_BASE_URL:-http://host.docker.internal:11434/v1}
       ANA_MOSLEM_ENABLE_CHAT_PROVIDER: "true"
