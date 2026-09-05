@@ -1,0 +1,1 @@
+- [Supabase migration access](supabase-migration-access.md) — the attached Supabase connector currently fails at proxy setup, while the server-side REST configuration reaches the project.

@@ -103,6 +103,10 @@ function getValidChatMessages(value: unknown): Array<{ role: "user" | "assistant
   return normalized.every(Boolean) ? normalized as Array<{ role: "user" | "assistant"; content: string }> : null;
 }
 
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, service: "ana-muslim" });
+});
+
 // Provider use remains disabled unless a separately approved runtime opt-in is set.
 const chatProviderEnabled = process.env.ANA_MOSLEM_ENABLE_CHAT_PROVIDER === "true";
 const openai = chatProviderEnabled && process.env.AI_INTEGRATIONS_OPENAI_API_KEY

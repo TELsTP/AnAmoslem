@@ -7,7 +7,8 @@
     "dev:client": "vite --port 5000 --host",
     "dev:server": "tsx watch server/index.ts",
     "build": "vite build",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "start:container": "NODE_ENV=production tsx server/index.ts"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
