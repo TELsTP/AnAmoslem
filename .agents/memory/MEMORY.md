@@ -1,2 +1,3 @@
 - [Supabase migration access](supabase-migration-access.md) — the attached Supabase connector currently fails at proxy setup, while the server-side REST configuration reaches the project.
 - [Local Ollama provider](local-ollama-provider.md) — use the Ubuntu host's Ollama endpoint for Ana Moslem to avoid Qwen Code cloud quota limits.
+- [Omni history source](omni-history-source.md) — the requested 490-message export is absent; adjacent PDFs are not safe substitutes for transcript history.
