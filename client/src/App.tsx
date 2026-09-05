@@ -110,8 +110,6 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 function HomeRoute() {
-  const { isLoaded, isSignedIn } = useAuth();
-  if (isLoaded && isSignedIn) return <Redirect to="/companion" />;
   return <Home />;
 }
 
