@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Send, X, Mic, MicOff, Sparkles, Volume2, VolumeX } from "lucide-react";
 import {
-  containsArchitectHandshake,
   getOrCreateSessionId,
-  markArchitectSession,
 } from "../lib/architect";
 
 interface MiniMessage {
@@ -172,8 +170,6 @@ export default function HayatPersona() {
   const sendMessage = async () => {
     const text = (input + interimText).trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || isLoading) return;
-    if (containsArchitectHandshake(text)) markArchitectSession();
-
     const userMsg: MiniMessage = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
@@ -213,6 +209,7 @@ export default function HayatPersona() {
           if (!line.startsWith("data: ")) continue;
           try {
             const data = JSON.parse(line.slice(6));
+            if (data.meta) continue;
             if (data.done) break;
             if (data.content) {
               fullResponse += data.content;

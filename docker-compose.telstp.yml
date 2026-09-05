@@ -1,0 +1,29 @@
+services:
+  ana-moslem:
+    build:
+      context: .
+      args:
+        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
+    container_name: ana-moslem
+    restart: unless-stopped
+    extra_hosts:
+      # Allows the container to reach Ollama installed directly on Ubuntu.
+      - "host.docker.internal:host-gateway"
+    ports:
+      # Portainer already uses host ports 8000 and 9443 on this machine.
+      # Ana Moslem stays on container port 8000 and is exposed on host port 8080.
+      - "8080:8000"
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      SESSION_SECRET: ${SESSION_SECRET}
+      # Confirmed local model on the hospital server.
+      AI_MODEL: ${AI_MODEL:-qwen2.5:3b}
+      AI_INTEGRATIONS_OPENAI_API_KEY: ${AI_INTEGRATIONS_OPENAI_API_KEY:-ollama-local}
+      AI_INTEGRATIONS_OPENAI_BASE_URL: ${AI_INTEGRATIONS_OPENAI_BASE_URL:-http://host.docker.internal:11434/v1}
+      ANA_MOSLEM_ENABLE_CHAT_PROVIDER: "true"
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      ARCHITECT_CLERK_USER_IDS: ${ARCHITECT_CLERK_USER_IDS}

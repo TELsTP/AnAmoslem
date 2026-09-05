@@ -241,7 +241,7 @@ export default function WirdPage() {
       </header>
 
       <main className="container py-8 max-w-2xl">
-        <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
+        <div className="islamic-card bg-card border border-border rounded-2xl p-8 shadow-lg">
           <h2 className="text-2xl font-bold text-center mb-6 text-emerald-500">اختر وردك اليومي</h2>
           <div className="grid grid-cols-1 gap-4 mb-8">
             <div>
@@ -287,7 +287,7 @@ export default function WirdPage() {
           </div>
 
           {selectedSurah && (
-            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 mb-6 text-center">
+            <div className="islamic-card bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 mb-6 text-center">
               <p className="text-sm text-muted-foreground">
                 سيتم تسميع <strong className="text-emerald-500">{endAyah - startAyah + 1}</strong> آية من سورة <strong className="text-emerald-500">{selectedSurah.name}</strong>
               </p>

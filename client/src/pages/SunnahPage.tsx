@@ -32,7 +32,7 @@ function HadithCard({ hadith, expanded, onToggle, onAskCompanion }: {
   onAskCompanion?: (h: Hadith) => void;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden transition-all">
+    <div className="islamic-card bg-white rounded-2xl border border-border shadow-sm overflow-hidden transition-all">
       <div
         className="p-5 cursor-pointer select-none"
         onClick={onToggle}
@@ -161,7 +161,7 @@ export default function SunnahPage() {
               <Star className="w-5 h-5 text-amber-500" />
               <h2 className="text-lg font-bold">حديث اليوم</h2>
             </div>
-            <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-6 text-white shadow-lg">
+            <div className="islamic-card bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-6 text-white shadow-lg">
               <p
                 className="leading-relaxed mb-4"
                 style={{ fontFamily: "'Amiri', serif", fontSize: "1.25rem", lineHeight: "2.3" }}

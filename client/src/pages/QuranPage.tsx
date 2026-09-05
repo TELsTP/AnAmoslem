@@ -896,7 +896,7 @@ export default function QuranPage() {
                 </div>
               )}
 
-              <div className="bg-white rounded-2xl border border-blue-100 shadow-sm p-6 md:p-10">
+              <div className="islamic-card bg-white rounded-2xl border border-blue-100 shadow-sm p-6 md:p-10">
                 <p
                   className="verse-display text-foreground text-justify"
                   style={{ fontSize: "1.5rem", lineHeight: "3.2", direction: "rtl" }}
@@ -920,15 +920,15 @@ export default function QuranPage() {
               </div>
 
               <div className="mt-6 grid grid-cols-3 gap-3">
-                <div className="bg-white rounded-xl border border-border p-4 text-center shadow-sm" dir="rtl">
+                <div className="islamic-card bg-white rounded-xl border border-border p-4 text-center shadow-sm" dir="rtl">
                   <div className="text-xl font-bold text-blue-600 mb-1">{toArabicNumeral(selectedSurah.number)}</div>
                   <div className="text-xs text-muted-foreground">رقم السورة</div>
                 </div>
-                <div className="bg-white rounded-xl border border-border p-4 text-center shadow-sm" dir="rtl">
+                <div className="islamic-card bg-white rounded-xl border border-border p-4 text-center shadow-sm" dir="rtl">
                   <div className="text-xl font-bold text-green-600 mb-1">{toArabicNumeral(selectedSurah.totalVerses)}</div>
                   <div className="text-xs text-muted-foreground">عدد الآيات</div>
                 </div>
-                <div className="bg-white rounded-xl border border-border p-4 text-center shadow-sm" dir="rtl">
+                <div className="islamic-card bg-white rounded-xl border border-border p-4 text-center shadow-sm" dir="rtl">
                   <div className={`text-xl font-bold mb-1 ${readSurahs.has(selectedSurah.number) ? "text-green-600" : "text-muted-foreground"}`}>
                     {readSurahs.has(selectedSurah.number) ? "مقروءة ✓" : "غير مقروءة"}
                   </div>

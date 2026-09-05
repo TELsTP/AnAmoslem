@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 228 35% 97%;
+    --foreground: 225 34% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 225 34% 14%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 239 72% 57%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --secondary: 231 38% 94%;
+    --secondary-foreground: 225 34% 14%;
+    --muted: 231 25% 94%;
+    --muted-foreground: 225 15% 46%;
+    --accent: 186 72% 90%;
+    --accent-foreground: 191 68% 25%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --border: 228 25% 88%;
+    --input: 228 25% 88%;
+    --ring: 239 72% 57%;
+    --radius: 1rem;
   }
 }
 
@@ -34,6 +34,11 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Tajawal', 'Arial', sans-serif;
+    background-image:
+      radial-gradient(circle at 12% 8%, hsl(187 78% 83% / 0.3), transparent 28rem),
+      radial-gradient(circle at 88% 4%, hsl(260 82% 87% / 0.32), transparent 26rem),
+      linear-gradient(180deg, hsl(var(--background)), hsl(228 32% 95%));
+    min-height: 100vh;
   }
   h1, h2, h3 {
     font-family: 'Amiri', 'Georgia', serif;
@@ -42,10 +47,122 @@
 
 @layer components {
   .islamic-card {
-    @apply rounded-xl border border-border bg-card text-card-foreground p-6 shadow-sm transition-shadow duration-200;
+    @apply relative overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm;
+    isolation: isolate;
+    transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
+    box-shadow: 0 10px 30px hsl(230 35% 18% / 0.06);
   }
   .islamic-card:hover {
-    @apply shadow-md;
+    @apply border-primary/30 shadow-xl;
+    transform: translateY(-4px);
+  }
+  .islamic-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 100% 0%, hsl(186 82% 65% / 0.11), transparent 34%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .islamic-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(hsl(var(--primary) / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.035) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: linear-gradient(to bottom, black, transparent 76%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .islamic-card:focus-visible,
+  .islamic-card:focus-within {
+    outline: 3px solid hsl(var(--ring) / 0.25);
+    outline-offset: 3px;
+  }
+  .photo-card {
+    min-height: 300px;
+    background-image: var(--card-image);
+    background-size: 100% auto;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: white;
+    transition: transform 300ms ease, box-shadow 300ms ease, background-size 700ms ease;
+  }
+  .photo-card::before {
+    background: linear-gradient(145deg, hsl(232 48% 10% / 0.2), hsl(232 48% 10% / 0.9) 78%);
+  }
+  .photo-card::after {
+    opacity: 0.7;
+    background-image: linear-gradient(hsl(180 90% 90% / 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(180 90% 90% / 0.07) 1px, transparent 1px);
+    mask-image: linear-gradient(to bottom, transparent 5%, black 62%, black);
+  }
+  .photo-card:hover {
+    background-size: 112% auto;
+    border-color: hsl(187 80% 72% / 0.7);
+    transform: translateY(-6px) scale(1.01);
+  }
+  .photo-card__content {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(180deg, transparent 28%, hsl(232 48% 10% / 0.72) 100%);
+  }
+  .photo-card__cue {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    gap: 0.4rem;
+    border: 1px solid hsl(180 90% 90% / 0.25);
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+    background: hsl(232 48% 10% / 0.28);
+    color: hsl(180 90% 92%);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    backdrop-filter: blur(10px);
+  }
+  .photo-card__arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: hsl(180 90% 92% / 0.14);
+    color: white;
+    transition: transform 220ms ease, background 220ms ease;
+  }
+  .photo-card:hover .photo-card__arrow,
+  .photo-card:focus-visible .photo-card__arrow {
+    transform: translate(-3px, -3px);
+    background: hsl(180 90% 92% / 0.28);
+  }
+  .stagger-reveal {
+    animation: card-reveal 620ms both cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .stagger-reveal:nth-child(2) { animation-delay: 70ms; }
+  .stagger-reveal:nth-child(3) { animation-delay: 140ms; }
+  .stagger-reveal:nth-child(4) { animation-delay: 210ms; }
+  .stagger-reveal:nth-child(5) { animation-delay: 280ms; }
+  .stagger-reveal:nth-child(6) { animation-delay: 350ms; }
+  .stagger-reveal:nth-child(7) { animation-delay: 420ms; }
+  @keyframes card-reveal {
+    from { opacity: 0; transform: translateY(18px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .islamic-card,
+    .photo-card,
+    .stagger-reveal,
+    .photo-card__arrow {
+      animation: none;
+      transition: none;
+    }
   }
   .verse-display {
     font-family: 'Amiri', serif;
