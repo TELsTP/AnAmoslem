@@ -109,10 +109,15 @@ app.get("/api/health", (_req, res) => {
 
 // Provider use remains disabled unless a separately approved runtime opt-in is set.
 const chatProviderEnabled = process.env.ANA_MOSLEM_ENABLE_CHAT_PROVIDER === "true";
-const openai = chatProviderEnabled && process.env.AI_INTEGRATIONS_OPENAI_API_KEY
+const aiBaseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+const aiApiKey =
+  process.env.AI_INTEGRATIONS_OPENAI_API_KEY ||
+  (aiBaseURL ? "ollama-local" : undefined);
+const aiModel = process.env.AI_MODEL || "gpt-5.1";
+const openai = chatProviderEnabled && aiApiKey
   ? new OpenAI({
-      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      apiKey: aiApiKey,
+      baseURL: aiBaseURL,
     })
   : null;
 
@@ -287,7 +292,7 @@ app.post("/api/chat", requireAuth, rateLimitChat, async (req, res) => {
     res.write(`data: ${JSON.stringify({ meta: true, architectActive: isArchitect })}\n\n`);
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-5.1",
+      model: aiModel,
       messages: [{ role: "system", content: systemContent }, ...modelMessages],
       stream: true,
       max_completion_tokens: 8192,
