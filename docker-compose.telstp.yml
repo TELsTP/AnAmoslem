@@ -7,7 +7,9 @@ services:
     container_name: ana-moslem
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      # Portainer already uses host ports 8000 and 9443 on this machine.
+      # Ana Moslem stays on container port 8000 and is exposed on host port 8080.
+      - "8080:8000"
     environment:
       NODE_ENV: production
       PORT: 8000
