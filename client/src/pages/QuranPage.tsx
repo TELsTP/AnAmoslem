@@ -861,6 +861,14 @@ export default function QuranPage() {
                     <span>تسميع وحفظ</span>
                   </button>
 
+                  <button
+                    onClick={() => navigate("/quran/tajweed")}
+                    className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all shadow-sm"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span>مرجع التجويد</span>
+                  </button>
+
                   {selectedSurah.number > 1 && (
                     <button
                       onClick={() => {

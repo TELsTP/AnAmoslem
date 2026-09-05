@@ -17,6 +17,7 @@ import SunnahPage from "./pages/SunnahPage";
 import WirdPage from "./pages/WirdPage";
 import AdhkarPage from "./pages/AdhkarPage";
 import LibraryPage from "./pages/LibraryPage";
+import TajweedPage from "./pages/TajweedPage";
 import HayatPersona from "./components/HayatPersona";
 
 const clerkPubKey = publishableKeyFromHost(
@@ -130,6 +131,9 @@ function AppRoutes() {
       </Route>
       <Route path="/companion">
         <ProtectedRoute><CompanionPage /></ProtectedRoute>
+      </Route>
+      <Route path="/quran/tajweed">
+        <ProtectedRoute><TajweedPage /></ProtectedRoute>
       </Route>
       <Route path="/quran">
         <ProtectedRoute><QuranPage /></ProtectedRoute>
